@@ -1,0 +1,10 @@
+usr/bin/firewall-config
+usr/share/applications/firewall-config.desktop
+usr/share/firewalld/firewall-config.glade
+usr/share/firewalld/gtk3_chooserbutton.py
+usr/share/firewalld/gtk3_niceexpander.py
+usr/share/glib-2.0/schemas/org.fedoraproject.FirewallConfig.gschema.xml
+usr/share/icons/hicolor/*/apps/firewall-config.png
+usr/share/icons/hicolor/*/apps/firewall-config.svg
+usr/share/man/man1/firewall-config.1
+usr/share/metainfo/firewall-config.appdata.xml

@@ -1,0 +1,73 @@
+From: Laurent Bigonville <bigon@debian.org>
+Date: Fri, 20 Nov 2015 01:18:04 +0100
+Subject: Switch to python3
+
+---
+ src/gtk3_chooserbutton.py            | 2 +-
+ src/gtk3_niceexpander.py             | 2 +-
+ src/tests/python/firewalld_config.py | 2 +-
+ src/tests/python/firewalld_direct.py | 2 +-
+ src/tests/python/firewalld_rich.py   | 2 +-
+ src/tests/python/firewalld_test.py   | 2 +-
+ 6 files changed, 6 insertions(+), 6 deletions(-)
+
+diff --git a/src/gtk3_chooserbutton.py b/src/gtk3_chooserbutton.py
+index 85cab68..74d973a 100755
+--- a/src/gtk3_chooserbutton.py
++++ b/src/gtk3_chooserbutton.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/python -Es
++#!/usr/bin/python3 -Es
+ # -*- coding: utf-8 -*-
+ #
+ # Copyright (C) 2008,2012 Red Hat, Inc.
+diff --git a/src/gtk3_niceexpander.py b/src/gtk3_niceexpander.py
+index 84e0dd3..f099e53 100644
+--- a/src/gtk3_niceexpander.py
++++ b/src/gtk3_niceexpander.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/python -Es
++#!/usr/bin/python3 -Es
+ # -*- coding: utf-8 -*-
+ #
+ # Copyright (C) 2016 Red Hat, Inc.
+diff --git a/src/tests/python/firewalld_config.py b/src/tests/python/firewalld_config.py
+index dd9e1fa..ecd3a19 100755
+--- a/src/tests/python/firewalld_config.py
++++ b/src/tests/python/firewalld_config.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/python
++#!/usr/bin/python3
+ # -*- coding: utf-8 -*-
+ #
+ # Copyright (C) 2010-2012 Red Hat, Inc.
+diff --git a/src/tests/python/firewalld_direct.py b/src/tests/python/firewalld_direct.py
+index 28da523..d2aac16 100755
+--- a/src/tests/python/firewalld_direct.py
++++ b/src/tests/python/firewalld_direct.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/python
++#!/usr/bin/python3
+ # -*- coding: utf-8 -*-
+ #
+ # Copyright (C) 2012 Red Hat, Inc.
+diff --git a/src/tests/python/firewalld_rich.py b/src/tests/python/firewalld_rich.py
+index 95b098c..d18010b 100755
+--- a/src/tests/python/firewalld_rich.py
++++ b/src/tests/python/firewalld_rich.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/python
++#!/usr/bin/python3
+ # -*- coding: utf-8 -*-
+ #
+ # Copyright (C) 2013 Red Hat, Inc.
+diff --git a/src/tests/python/firewalld_test.py b/src/tests/python/firewalld_test.py
+index 0d8b4c7..8406625 100755
+--- a/src/tests/python/firewalld_test.py
++++ b/src/tests/python/firewalld_test.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/python
++#!/usr/bin/python3
+ # -*- coding: utf-8 -*-
+ #
+ # Copyright (C) 2010-2012 Red Hat, Inc.

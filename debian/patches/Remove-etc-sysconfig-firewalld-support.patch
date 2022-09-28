@@ -1,0 +1,24 @@
+From: Michael Biebl <biebl@debian.org>
+Date: Sat, 9 Feb 2013 07:28:08 +0100
+Subject: Remove /etc/sysconfig/firewalld support
+
+This is a Redhatism. If users want to override how firewalld is started, they
+can use the standard systemd mechanisms for that, like drop-ins.
+---
+ config/firewalld.service.in | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
+
+diff --git a/config/firewalld.service.in b/config/firewalld.service.in
+index afbe0ac..07d6221 100644
+--- a/config/firewalld.service.in
++++ b/config/firewalld.service.in
+@@ -8,8 +8,7 @@ Conflicts=iptables.service ip6tables.service ebtables.service ipset.service nfta
+ Documentation=man:firewalld(1)
+ 
+ [Service]
+-EnvironmentFile=-/etc/sysconfig/firewalld
+-ExecStart=@sbindir@/firewalld --nofork --nopid $FIREWALLD_ARGS
++ExecStart=@sbindir@/firewalld --nofork --nopid
+ ExecReload=/bin/kill -HUP $MAINPID
+ # supress to log debug and error output also to /var/log/messages
+ StandardOutput=null

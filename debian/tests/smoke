@@ -1,0 +1,21 @@
+#!/bin/sh
+
+set -e
+
+# Give firewalld some time to settle
+sleep 15
+
+if ! systemctl -q is-active firewalld ; then
+	journalctl -u firewalld
+	exit 1
+fi
+
+systemctl status firewalld
+
+# Test if a basic command like --state works
+firewall-cmd --state
+
+# We don't want any warnings or errors in the log
+if systemctl status firewalld | grep -q -E "(ERROR|WARNING)" ; then
+	exit 1
+fi

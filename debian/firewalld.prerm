@@ -1,0 +1,25 @@
+#!/bin/sh
+set -e
+
+
+case "$1" in
+    # only remove in remove/deconfigure so we don't disrupt users' preferences
+    remove|deconfigure)
+        update-alternatives --remove org.fedoraproject.FirewallD1.policy \
+            /usr/share/polkit-1/actions/org.fedoraproject.FirewallD1.server.policy.choice
+        update-alternatives --remove org.fedoraproject.FirewallD1.policy \
+            /usr/share/polkit-1/actions/org.fedoraproject.FirewallD1.desktop.policy.choice
+        ;;
+
+    upgrade|failed-upgrade)
+        ;;
+
+    *)
+        echo "prerm called with unknown argument \`$1'" >&2
+        exit 1
+        ;;
+esac
+
+#DEBHELPER#
+
+exit 0

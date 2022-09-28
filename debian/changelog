@@ -1,0 +1,580 @@
+firewalld (1.0.2-1) unstable; urgency=medium
+
+  * New upstream version 1.0.2
+
+ -- Michael Biebl <biebl@debian.org>  Fri, 05 Nov 2021 13:01:32 +0100
+
+firewalld (1.0.1-2) unstable; urgency=medium
+
+  * Demote iptables to Recommends.
+    The default backend is nftables nowadays so the iptables dependency is
+    no longer needed with a default configuration.
+    Update test dependencies accordingly. The testsuite tests both the
+    nftables and iptables backend and therefore needs iptables installed.
+    (Closes: #992423)
+  * Make smoke autopkgtest more strict and drop smoke-with-recommends.
+    We don't want any errors or warnings with a default setup so the
+    smoke-with-recommends test becomes obsolete.
+  * Add nftables to test dependencies.
+    Don't rely on it being installed by default. nftables is required by
+    standard-tests and integration-tests. (Closes: #993115)
+
+ -- Michael Biebl <biebl@debian.org>  Mon, 30 Aug 2021 11:26:43 +0200
+
+firewalld (1.0.1-1) unstable; urgency=medium
+
+  * New upstream version 1.0.1
+  * Drop python3-slip-dbus Depends.
+    Upstream now uses a custom decorator to do PolicyKit authorization, so
+    this dependency is no longer required.
+  * Add Recommends on python3-cap-ng to firewalld.
+    If available it is used by firewalld to drop capabilities to a minimal
+    set.
+  * Provide testsuite in a separate firewalld-tests package.
+    Update our autopkgtest tests to use this new package.
+  * List unused files in debian/not-installed
+  * Abort if we have uninstalled files.
+    Use fail-missing (the default of dh_missing) now that we declared
+    unused files via debian/not-installed.
+  * Disable integration/rhbz1928860.at test.
+    It requires NetworkManager to be built with OVS support which is not
+    the case in Debian (yet).
+  * Update debian/patches/Switch-to-python3.patch
+
+ -- Michael Biebl <biebl@debian.org>  Tue, 17 Aug 2021 23:25:15 +0200
+
+firewalld (0.9.3-2) unstable; urgency=medium
+
+  [ Debian Janitor ]
+  * Update watch file format version to 4.
+  * Use secure URI in Homepage field.
+  * Set upstream metadata fields: Bug-Database, Bug-Submit, Repository,
+    Repository-Browse.
+
+  [ Michael Biebl ]
+  * Fix path for ipset.
+    The binary was moved from /sbin to /usr/sbin. (Closes: #981547)
+
+ -- Michael Biebl <biebl@debian.org>  Mon, 01 Feb 2021 13:54:28 +0100
+
+firewalld (0.9.3-1) unstable; urgency=medium
+
+  * New upstream version 0.9.3
+  * Bump Standards-Version to 4.5.1
+  * Set Rules-Requires-Root to no
+
+ -- Michael Biebl <biebl@debian.org>  Tue, 12 Jan 2021 18:08:11 +0100
+
+firewalld (0.9.1-1) unstable; urgency=medium
+
+  * New upstream version 0.9.1
+
+ -- Michael Biebl <biebl@debian.org>  Thu, 01 Oct 2020 19:45:58 +0200
+
+firewalld (0.9.0-1) unstable; urgency=medium
+
+  * New upstream version 0.9.0
+  * Bump debhelper-compat to 13
+  * autopkgtest: Add dependencies for dbus api unit tests
+
+ -- Michael Biebl <biebl@debian.org>  Thu, 03 Sep 2020 15:53:45 +0200
+
+firewalld (0.8.3-1) unstable; urgency=medium
+
+  * New upstream version 0.8.3
+  * Remove obsolote conffiles on upgrade
+  * Rebase patches
+
+ -- Michael Biebl <biebl@debian.org>  Wed, 01 Jul 2020 23:49:27 +0200
+
+firewalld (0.8.2-2) unstable; urgency=medium
+
+  * Drop SysV init script
+  * Remove migration code from oldstable
+  * Switch FirewallBackend to nftables
+
+ -- Michael Biebl <biebl@debian.org>  Sat, 27 Jun 2020 21:25:02 +0200
+
+firewalld (0.8.2-1) unstable; urgency=medium
+
+  * New upstream version 0.8.2
+  * Rebase patches
+  * Bump Standards-Version to 4.5.0
+  * Install logrotate config file for firewalld
+
+ -- Michael Biebl <biebl@debian.org>  Sat, 04 Apr 2020 07:50:39 +0200
+
+firewalld (0.8.1-1) unstable; urgency=medium
+
+  * New upstream version 0.8.1
+  * Rebase patches
+
+ -- Michael Biebl <biebl@debian.org>  Sun, 12 Jan 2020 00:20:30 +0100
+
+firewalld (0.8.0-2) unstable; urgency=medium
+
+  * Split Python3 bindings into a separate package python3-firewall
+    (Closes: #939094)
+
+ -- Michael Biebl <biebl@debian.org>  Wed, 18 Dec 2019 17:55:02 +0100
+
+firewalld (0.8.0-1) unstable; urgency=medium
+
+  * New upstream version 0.8.0
+    - Make failures to load kernel modules non-fatal. (Closes: #945459)
+  * Use DEP-14 branch naming
+  * Drop obsolete Breaks/Replaces
+  * Bump Standards-Version to 4.4.1
+  * Drop obsolete configure flags
+  * Add dependency on python3-nftables.
+    The nftables backend is now using the JSON interface of libnftables
+    instead of calling the nft binary.
+
+ -- Michael Biebl <biebl@debian.org>  Wed, 18 Dec 2019 17:43:19 +0100
+
+firewalld (0.7.2-1) unstable; urgency=medium
+
+  * New upstream version 0.7.2
+  * Add intltools to root-unittests autopkgtest dependencies.
+    In some environments "automake --refresh" is triggered before tests are
+    executed and fails if intltool is missing. (Closes: #936047)
+
+ -- Michael Biebl <biebl@debian.org>  Thu, 10 Oct 2019 13:06:21 +0200
+
+firewalld (0.7.1-1) unstable; urgency=medium
+
+  * New upstream version 0.7.1
+
+ -- Michael Biebl <biebl@debian.org>  Tue, 23 Jul 2019 00:18:50 +0200
+
+firewalld (0.7.0-1) unstable; urgency=medium
+
+  * New upstream version 0.7.0
+  * Use debhelper-compat (= 12) Build-Depends and drop debian/compat
+  * Rebase patches
+  * Install zsh completion file
+  * Add Build-Depends on libxml2-utils.
+    Required for /usr/bin/xmlcatalog.
+  * Bump Standards-Version to 4.4.0
+
+ -- Michael Biebl <biebl@debian.org>  Wed, 10 Jul 2019 21:43:28 +0200
+
+firewalld (0.6.3-5) unstable; urgency=medium
+
+  * Team upload.
+  * Drop Recommends against ebtables and bump iptables version to 1.8.1-1 to
+    be certain the ebtables executables are present (Closes: #918470)
+  * Cherry-pick "ipXtables/nftables: Fix "object has no attribute
+    '_log_denied'"" (Closes: #916791)
+  * debian/control: Bump build-dependency against debhelper to 12, compat
+    version was already set to 12
+  * debian/rules: Use the iptables binaries that are now installed in
+    /usr/sbin and avoid the compatibility symlinks installed in /sbin
+  * debian/control: Bump Standards-Version to 4.3.0 (no further changes)
+
+ -- Laurent Bigonville <bigon@debian.org>  Fri, 01 Feb 2019 13:41:47 +0100
+
+firewalld (0.6.3-4) unstable; urgency=medium
+
+  * Move D-Bus policy file to /usr/share/dbus-1/system.d/
+  * Remove obsolete conffile /etc/dbus-1/system.d/FirewallD.conf on upgrades
+
+ -- Michael Biebl <biebl@debian.org>  Tue, 27 Nov 2018 15:10:52 +0100
+
+firewalld (0.6.3-3) unstable; urgency=medium
+
+  * Specify canonical paths for modinfo, modprobe, rmmod and sysctl during
+    configure.
+    This ensures that if the package is built in a merged-/usr environment it
+    continues to work on non-merged-/usr systems. (Closes: #913729)
+
+ -- Michael Biebl <biebl@debian.org>  Wed, 14 Nov 2018 16:57:55 +0100
+
+firewalld (0.6.3-2) unstable; urgency=medium
+
+  * Switch firewall backend from nftables back to iptables (again)
+    When both firewalld and libvirt are installed, libvirt guests using NAT do
+    not have internet access. The problem is that libvirt is not compatible
+    (yet) with firewalld's new nftables backend. (Closes: #909574)
+  * Switch to compat level 12 and dh_installsystemd
+
+ -- Michael Biebl <biebl@debian.org>  Tue, 13 Nov 2018 20:20:40 +0100
+
+firewalld (0.6.3-1) unstable; urgency=medium
+
+  * New upstream version 0.6.3
+  * Bump Standards-Version to 4.2.1
+  * Rebase patches
+
+ -- Michael Biebl <biebl@debian.org>  Sun, 14 Oct 2018 22:32:32 +0200
+
+firewalld (0.6.2-1) unstable; urgency=medium
+
+  * New upstream version 0.6.2
+  * Rebase patches
+  * Revert "Switch firewall backend from nftables back to iptables"
+    Follow upstream and use nftables as default backend. This requires a
+    kernel >= 4.18 to work properly.
+    This also requires the corresponding userspace utility nft, so add
+    Depends on the nftables package.
+    If for some reason you need to revert to the old iptables backend, you
+    can easily do so by setting FirewallBackend in
+    /etc/firewalld/firewalld.conf to iptables, then restart firewalld.
+  * tests/functions: fix macro to dump ipset
+  * Run upstream unit tests using autopkgtest.
+  * Test successful start of firewalld via autopkgtests.
+    Add two basic autopkgtests which simply check if the firewalld daemon
+    starts without errors (and warnings) if all Depends (and Recommends) are
+    installed.
+
+ -- Michael Biebl <biebl@debian.org>  Thu, 20 Sep 2018 11:35:33 +0200
+
+firewalld (0.6.1-2) unstable; urgency=medium
+
+  * firewall/core/fw_nm: nm_get_zone_of_connection should return None or empty
+    string instead of False
+
+ -- Michael Biebl <biebl@debian.org>  Thu, 23 Aug 2018 17:26:58 +0200
+
+firewalld (0.6.1-1) unstable; urgency=medium
+
+  * New upstream version 0.6.1 (Closes: #904244)
+  * Rebase patches
+  * Drop ancient X-Python3-Version
+  * Stop installing firewallctl.
+    This tool has been deprecated since 0.5.0 and removed completely in 0.6.0.
+  * Take over cockpit.xml service definition file from cockpit-ws.
+    Add Breaks/Replaces accordingly.
+  * Don't run test-suite during build.
+    It requires root privileges to run successfully so we will eventually
+    use autopkgtest instead.
+  * Drop our workaround to move AppData files to /usr/share/metainfo/.
+    This has been fixed upstream.
+  * Specificy path to nft (nftables) executable via configure switch
+  * Switch firewall backend from nftables back to iptables.
+    The nftables backend requires Linux >= 4.18 which is not yet available
+    in the Debian archive. Once the new kernel is more widely used, the
+    backend will be switched back to nftables as default.
+  * Bump Standards-Version to 4.2.0
+
+ -- Michael Biebl <biebl@debian.org>  Wed, 22 Aug 2018 22:08:51 +0200
+
+firewalld (0.4.4.6-2) unstable; urgency=medium
+
+  * Team upload
+  * Use preferred https URL for d/copyright Format
+  * Update Vcs-* for move to salsa.debian.org
+  * Move AppStream metadata from /usr/share/appdata to /usr/share/metainfo
+  * Bump Standards-Version to 4.1.4 (no further changes required)
+
+ -- Simon McVittie <smcv@debian.org>  Mon, 30 Apr 2018 00:04:26 +0100
+
+firewalld (0.4.4.6-1) unstable; urgency=medium
+
+  [ Laurent Bigonville ]
+  * Handle /usr/share/polkit-1/actions/org.fedoraproject.FirewallD1.policy
+    symlink using alternatives (Closes: #802283)
+
+  [ Michael Biebl ]
+  * New upstream version 0.4.4.6
+  * Use upstream provided autogen.sh for dh_autoreconf
+  * Bump Standards-Version to 4.1.1
+  * Switch to dh_missing to list uninstalled files
+
+ -- Michael Biebl <biebl@debian.org>  Wed, 15 Nov 2017 16:12:22 +0100
+
+firewalld (0.4.4.5-2) unstable; urgency=medium
+
+  * Upload to unstable
+
+ -- Michael Biebl <biebl@debian.org>  Sun, 18 Jun 2017 16:27:36 +0200
+
+firewalld (0.4.4.5-1) experimental; urgency=medium
+
+  * New upstream version 0.4.4.5
+
+ -- Michael Biebl <biebl@debian.org>  Fri, 16 Jun 2017 22:23:19 +0200
+
+firewalld (0.4.4.4-1) experimental; urgency=medium
+
+  * New upstream version 0.4.4.4
+  * Update watch file for new location at github.
+    fedorahosted.org has been shut down.
+  * Override dh_autoreconf so we can run intltoolize
+  * Switch to gir1.2-nm-1.0.
+    The introspection data for libnm has been split out of
+    gir1.2-networkmanager-1.0 into gir1.2-nm-1.0.
+
+ -- Michael Biebl <biebl@debian.org>  Fri, 12 May 2017 14:19:06 +0200
+
+firewalld (0.4.4.3-1) unstable; urgency=medium
+
+  * New upstream release.
+  * Update Vcs-* URLs following the latest recommendation
+
+ -- Michael Biebl <biebl@debian.org>  Sun, 12 Feb 2017 05:20:32 +0100
+
+firewalld (0.4.4.2-1) unstable; urgency=medium
+
+  * New upstream release.
+  * Drop patches which have been merged upstream.
+
+ -- Michael Biebl <biebl@debian.org>  Thu, 01 Dec 2016 22:58:52 +0100
+
+firewalld (0.4.4.1-2) unstable; urgency=medium
+
+  * Do not hard-code paths for modinfo, modprobe and rmmod.
+    Use autofoo to detect them. Patches cherry-picked from upstream Git.
+    Add Build-Depends on kmod accordingly. (Closes: #844270)
+
+ -- Michael Biebl <biebl@debian.org>  Thu, 24 Nov 2016 18:08:46 +0100
+
+firewalld (0.4.4.1-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Michael Biebl <biebl@debian.org>  Thu, 10 Nov 2016 14:59:09 +0100
+
+firewalld (0.4.4-2) unstable; urgency=medium
+
+  * Update Homepage URL, use http://www.firewalld.org/. (Closes: #843236)
+  * Fix dependencies of firewall-applet. Change Depends on
+    python3-dbus.mainloop.qt to python3-dbus.mainloop.pyqt5. (Closes: #843564)
+
+ -- Michael Biebl <biebl@debian.org>  Tue, 08 Nov 2016 23:43:25 +0100
+
+firewalld (0.4.4-1) unstable; urgency=medium
+
+  * New upstream release.
+  * Switch from PyQt4 to PyQt5.
+  * Bump debhelper compat level to 10.
+
+ -- Michael Biebl <biebl@debian.org>  Thu, 03 Nov 2016 20:14:25 +0100
+
+firewalld (0.4.3.3-1) unstable; urgency=medium
+
+  * New upstream release.
+    - Fixes CVE-2016-5410: Firewall configuration can be modified by any
+      logged in user. (Closes: #834529)
+
+ -- Michael Biebl <biebl@debian.org>  Sat, 27 Aug 2016 16:00:36 +0200
+
+firewalld (0.4.3.2-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Michael Biebl <biebl@debian.org>  Tue, 05 Jul 2016 22:44:13 +0200
+
+firewalld (0.4.3.1-1) unstable; urgency=medium
+
+  * New upstream release.
+  * Drop 00git-doc-man1-Install-the-firewallctl-manpage.patch, merged
+    upstream.
+
+ -- Michael Biebl <biebl@debian.org>  Tue, 28 Jun 2016 23:21:22 +0200
+
+firewalld (0.4.3-1) unstable; urgency=medium
+
+  * New upstream release.
+  * Drop 00git-firewall-core-fw_ifcfg-Quickly-return-if-ifcfg-direc.patch,
+    merged upstream.
+  * Install new firewallctl utility.
+  * Make sure the new firewallctl.1 man page is installed. Use dh-autoreconf
+    to update the build system.
+
+ -- Michael Biebl <biebl@debian.org>  Fri, 24 Jun 2016 03:01:32 +0200
+
+firewalld (0.4.2-2) unstable; urgency=medium
+
+  * Do not fail if /etc/sysconfig/network-scripts directory does not exist.
+    Patch cherry-picked from upstream Git. (Closes: #826961)
+
+ -- Michael Biebl <biebl@debian.org>  Sat, 18 Jun 2016 05:58:20 +0200
+
+firewalld (0.4.2-1) unstable; urgency=medium
+
+  * New upstream release.
+  * Refresh patches.
+  * firewall-config: Install gtk3_niceexpander.py.
+
+ -- Michael Biebl <biebl@debian.org>  Tue, 07 Jun 2016 21:21:05 +0200
+
+firewalld (0.4.1.2-1) unstable; urgency=medium
+
+  * New upstream release.
+  * Bump Standards-Version to 3.9.8.
+
+ -- Michael Biebl <biebl@debian.org>  Wed, 27 Apr 2016 14:43:43 +0200
+
+firewalld (0.4.0-1) unstable; urgency=medium
+
+  * Team upload.
+  [ Michael Biebl ]
+  * Unbreak Vcs-Browser
+
+  [ Laurent Bigonville ]
+  * Imported Upstream version 0.4.0
+  * d/p/01-no-sysconfig.patch: Refreshed
+  * d/p/02-fix-changing-zone.patch, d/p/03_avoid-PyGIWarning.patch: Dropped,
+    applied upstream.
+  * d/firewall-applet.install: Install /etc/firewall/applet.conf
+  * debian/control: Add ipset to the Recommends
+  * debian/rules: Hardcode the paths to all the *config utilities
+  * debian/control: firewalld now needs ebtables-restore which is only
+    available starting version 2.0.10.4-3.1~
+
+ -- Laurent Bigonville <bigon@debian.org>  Sun, 07 Feb 2016 22:41:33 +0100
+
+firewalld (0.3.14.2-2) unstable; urgency=medium
+
+  * Team upload.
+  * Protect config files by making /etc/firewalld non-world readable
+  * Switch to python3
+
+ -- Laurent Bigonville <bigon@debian.org>  Fri, 20 Nov 2015 01:49:18 +0100
+
+firewalld (0.3.14.2-1) unstable; urgency=medium
+
+  * Team upload.
+  * Imported Upstream version 0.3.14.2
+  * Add dh-python to the build-dependencies
+  * Split firewall-config out of the firewall-applet package
+  * Update the Vcs-* URL's to please lintian
+  * Fix PermissionDenied when trying to change the zone of a connection
+    (Closes: #767888)
+  * d/p/03_avoid-PyGIWarning.patch: avoid PyGIWarning seen with Gtk-3.17
+
+ -- Laurent Bigonville <bigon@debian.org>  Sat, 17 Oct 2015 00:16:17 +0200
+
+firewalld (0.3.13-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Michael Biebl <biebl@debian.org>  Thu, 07 May 2015 00:20:34 +0200
+
+firewalld (0.3.12-1) unstable; urgency=medium
+
+  * New upstream release.
+  * Bump Standards-Version to 3.9.6. No further changes.
+
+ -- Michael Biebl <biebl@debian.org>  Thu, 16 Oct 2014 06:22:54 +0200
+
+firewalld (0.3.11-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Michael Biebl <biebl@debian.org>  Thu, 21 Aug 2014 15:25:36 +0200
+
+firewalld (0.3.10-1) unstable; urgency=medium
+
+  * New upstream release.
+  * Add Depends on policykit-1, access to the firewalld D-Bus interface is
+    protected by PolicyKit.
+  * Install AppData file.
+
+ -- Michael Biebl <biebl@debian.org>  Sat, 31 May 2014 00:27:02 +0200
+
+firewalld (0.3.9.3-1) unstable; urgency=medium
+
+  * New upstream release.
+  * Bump Standards-Version to 3.9.5. No further changes.
+  * Update copyright years.
+
+ -- Michael Biebl <biebl@debian.org>  Sat, 15 Feb 2014 17:08:17 +0100
+
+firewalld (0.3.7-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Michael Biebl <biebl@debian.org>  Thu, 17 Oct 2013 18:01:20 +0200
+
+firewalld (0.3.6.2-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Michael Biebl <biebl@debian.org>  Fri, 04 Oct 2013 19:39:44 +0200
+
+firewalld (0.3.6-1) unstable; urgency=low
+
+  * New upstream release.
+  * Remove debian/patches/02-IPv6-NAT-check.patch, merged upstream.
+
+ -- Michael Biebl <biebl@debian.org>  Thu, 03 Oct 2013 00:58:11 +0200
+
+firewalld (0.3.5-1) unstable; urgency=low
+
+  * New upstream release.
+  * Use dh-systemd to properly register the systemd service file.
+    (Closes: #715250)
+  * debian/patches/02-IPv6-NAT-check.patch: Don't use uname and a simple
+    kernel version check to determine whether the kernel supports IPv6 NAT.
+    This fails with the  Debian kernel versioning scheme and isn't a
+    sufficient check anyway. Instead execute "ip6tables -t nat -L" and check
+    the return code.
+  * Install autostart file for firewall-applet.
+
+ -- Michael Biebl <biebl@debian.org>  Tue, 01 Oct 2013 02:08:54 +0200
+
+firewalld (0.3.4-1) unstable; urgency=low
+
+  * New upstream release.
+  * Add Build-Depends on xsltproc, docbook-xsl and docbook-xml for the man
+    pages which are created from docbook sources now.
+
+ -- Michael Biebl <biebl@debian.org>  Tue, 30 Jul 2013 21:50:44 +0200
+
+firewalld (0.3.3-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Michael Biebl <biebl@debian.org>  Sat, 08 Jun 2013 01:41:11 +0200
+
+firewalld (0.3.2-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Michael Biebl <biebl@debian.org>  Fri, 10 May 2013 20:42:49 +0200
+
+firewalld (0.3.1-1) unstable; urgency=low
+
+  * New upstream release.
+  * Refresh 01-no-sysconfig.patch.
+  * Install bash-completion for firewall-cmd.
+
+ -- Michael Biebl <biebl@debian.org>  Thu, 28 Mar 2013 22:27:22 +0100
+
+firewalld (0.3.0-1) unstable; urgency=low
+
+  * New upstream release.
+  * Update patches:
+    - Refresh 01-no-sysconfig.patch.
+    - Drop 02-don-t-keep-file-descriptors-open-when-forking.patch, merged
+      upstream.
+
+ -- Michael Biebl <biebl@debian.org>  Wed, 20 Mar 2013 19:39:29 +0100
+
+firewalld (0.2.12-4) unstable; urgency=low
+
+  * Add Depends on dbus. It's a required dependency and insserv will bail out
+    if dbus is not installed. (Closes: #702047)
+
+ -- Michael Biebl <biebl@debian.org>  Thu, 14 Mar 2013 18:53:03 +0100
+
+firewalld (0.2.12-3) unstable; urgency=low
+
+  * Add Depends on iptables.
+
+ -- Michael Biebl <biebl@debian.org>  Sat, 09 Feb 2013 21:48:48 +0100
+
+firewalld (0.2.12-2) unstable; urgency=low
+
+  * Add SysV init script.
+  * Don't keep file descriptors open when forking.
+
+ -- Michael Biebl <biebl@debian.org>  Sat, 09 Feb 2013 15:33:08 +0100
+
+firewalld (0.2.12-1) unstable; urgency=low
+
+  * Initial release. (Closes: #700154)
+
+ -- Michael Biebl <biebl@debian.org>  Sat, 09 Feb 2013 07:28:08 +0100

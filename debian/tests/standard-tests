@@ -1,0 +1,7 @@
+#!/bin/sh
+
+cd /tmp
+if ! /usr/share/firewalld/testsuite/testsuite ; then
+	cat /tmp/testsuite.log
+	exit 1
+fi

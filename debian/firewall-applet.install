@@ -1,0 +1,6 @@
+etc/firewall/applet.conf
+etc/xdg/autostart/firewall-applet.desktop
+usr/bin/firewall-applet
+usr/share/icons/hicolor/*/apps/firewall-applet*.png
+usr/share/icons/hicolor/*/apps/firewall-applet*.svg
+usr/share/man/man1/firewall-applet.1

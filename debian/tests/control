@@ -1,0 +1,21 @@
+Tests: standard-tests
+Depends: firewalld-tests,
+         ipset,
+         iptables,
+         nftables,
+         libglib2.0-bin,
+         libxml2-utils,
+Restrictions: needs-root, isolation-machine
+
+Tests: integration-tests
+Depends: firewalld-tests,
+         iptables,
+         nftables,
+         network-manager,
+         sudo,
+         policykit-1,
+Restrictions: needs-root, isolation-machine
+
+Tests: smoke
+Depends: firewalld
+Restrictions: needs-root, isolation-machine

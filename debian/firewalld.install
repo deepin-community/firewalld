@@ -1,0 +1,16 @@
+etc/firewalld/
+etc/logrotate.d/firewalld
+lib/systemd/
+usr/bin/firewall-cmd
+usr/bin/firewall-offline-cmd
+usr/lib/firewalld/
+usr/sbin/firewalld
+usr/share/dbus-1/
+usr/share/bash-completion/
+usr/share/zsh/vendor-completions/
+usr/share/locale/
+usr/share/man/man1/firewall-cmd.1
+usr/share/man/man1/firewall-offline-cmd.1
+usr/share/man/man1/firewalld.1
+usr/share/man/man5/
+usr/share/polkit-1/
