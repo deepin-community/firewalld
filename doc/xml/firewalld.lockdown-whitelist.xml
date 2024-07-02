@@ -7,24 +7,14 @@
 ]>
 
 <!--
+  SPDX-License-Identifier: GPL-2.0-or-later
+
   This file is part of firewalld.
 
   Copyright (C) 2010-2013 Red Hat, Inc.
+
   Authors:
   Thomas Woerner <twoerner@redhat.com>
-
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -->
 
 <refentry id="firewalld.lockdown-whitelist">
@@ -48,7 +38,7 @@
   <refsynopsisdiv>
     <para>
       <programlisting>
-<filename><config.sysconfdir/>/firewalld/lockdown-whitelists.xml</filename>
+        <filename><config.sysconfdir/>/firewalld/lockdown-whitelist.xml</filename>
       </programlisting>
     </para>
   </refsynopsisdiv>
@@ -59,7 +49,7 @@
     <para>
       The firewalld lockdown-whitelist configuration file contains the selinux contexts, commands, users and user ids that are white-listed when firewalld lockdown feature is enabled (see <citerefentry><refentrytitle>firewalld.conf</refentrytitle><manvolnum>5</manvolnum></citerefentry> and <citerefentry><refentrytitle>firewall-cmd</refentrytitle><manvolnum>1</manvolnum></citerefentry>).
     </para>
- 
+
     <para>
       This example configuration file shows the structure of an lockdown-whitelist file:
 
@@ -104,7 +94,7 @@
 	      To get the context of a running application use <command>ps -e --context</command> and search for the application that should be white-listed.
 	    </para>
 	    <para>
-	      Warning: If the context of an application is unconfined, then this will open access for more than the desired application. 
+	      Warning: If the context of an application is unconfined, then this will open access for more than the desired application.
 	    </para>
 	  </listitem>
 	</varlistentry>

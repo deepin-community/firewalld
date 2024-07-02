@@ -5,6 +5,7 @@ Depends: firewalld-tests,
          nftables,
          libglib2.0-bin,
          libxml2-utils,
+         time,
 Restrictions: needs-root, isolation-machine
 
 Tests: integration-tests
@@ -13,7 +14,7 @@ Depends: firewalld-tests,
          nftables,
          network-manager,
          sudo,
-         policykit-1,
+         polkitd | policykit-1,
 Restrictions: needs-root, isolation-machine
 
 Tests: smoke

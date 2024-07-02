@@ -1,2 +1,4 @@
 version=4
-https://github.com/firewalld/firewalld/releases/ .*/firewalld-(\d\S*)\.tar\.gz
+opts="searchmode=plain" \
+  https://api.github.com/repos/firewalld/@PACKAGE@/releases \
+  https://github.com/firewalld/@PACKAGE@/releases/download/v(?:\d[\d.]*)/@PACKAGE@@ANY_VERSION@@ARCHIVE_EXT@

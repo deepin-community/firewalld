@@ -7,67 +7,67 @@ Subject: Switch to python3
  src/gtk3_niceexpander.py             | 2 +-
  src/tests/python/firewalld_config.py | 2 +-
  src/tests/python/firewalld_direct.py | 2 +-
+ src/tests/python/firewalld_misc.py   | 2 +-
  src/tests/python/firewalld_rich.py   | 2 +-
- src/tests/python/firewalld_test.py   | 2 +-
  6 files changed, 6 insertions(+), 6 deletions(-)
 
 diff --git a/src/gtk3_chooserbutton.py b/src/gtk3_chooserbutton.py
-index 85cab68..74d973a 100755
+index dc6ead2..9f6666d 100755
 --- a/src/gtk3_chooserbutton.py
 +++ b/src/gtk3_chooserbutton.py
 @@ -1,4 +1,4 @@
 -#!/usr/bin/python -Es
 +#!/usr/bin/python3 -Es
- # -*- coding: utf-8 -*-
+ # SPDX-License-Identifier: GPL-2.0-or-later
  #
  # Copyright (C) 2008,2012 Red Hat, Inc.
 diff --git a/src/gtk3_niceexpander.py b/src/gtk3_niceexpander.py
-index 84e0dd3..f099e53 100644
+index 66a09c6..db74a36 100644
 --- a/src/gtk3_niceexpander.py
 +++ b/src/gtk3_niceexpander.py
 @@ -1,4 +1,4 @@
 -#!/usr/bin/python -Es
 +#!/usr/bin/python3 -Es
- # -*- coding: utf-8 -*-
+ # SPDX-License-Identifier: GPL-2.0-or-later
  #
  # Copyright (C) 2016 Red Hat, Inc.
 diff --git a/src/tests/python/firewalld_config.py b/src/tests/python/firewalld_config.py
-index dd9e1fa..ecd3a19 100755
+index 3a832e9..844e27a 100755
 --- a/src/tests/python/firewalld_config.py
 +++ b/src/tests/python/firewalld_config.py
 @@ -1,4 +1,4 @@
 -#!/usr/bin/python
 +#!/usr/bin/python3
- # -*- coding: utf-8 -*-
+ # SPDX-License-Identifier: GPL-2.0-or-later
  #
  # Copyright (C) 2010-2012 Red Hat, Inc.
 diff --git a/src/tests/python/firewalld_direct.py b/src/tests/python/firewalld_direct.py
-index 28da523..d2aac16 100755
+index 124c025..4e07a92 100755
 --- a/src/tests/python/firewalld_direct.py
 +++ b/src/tests/python/firewalld_direct.py
 @@ -1,4 +1,4 @@
 -#!/usr/bin/python
 +#!/usr/bin/python3
- # -*- coding: utf-8 -*-
+ # SPDX-License-Identifier: GPL-2.0-or-later
  #
  # Copyright (C) 2012 Red Hat, Inc.
+diff --git a/src/tests/python/firewalld_misc.py b/src/tests/python/firewalld_misc.py
+index a160eef..fbc1a73 100755
+--- a/src/tests/python/firewalld_misc.py
++++ b/src/tests/python/firewalld_misc.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/python
++#!/usr/bin/python3
+ # SPDX-License-Identifier: GPL-2.0-or-later
+ #
+ # Copyright (C) 2010-2012 Red Hat, Inc.
 diff --git a/src/tests/python/firewalld_rich.py b/src/tests/python/firewalld_rich.py
-index 95b098c..d18010b 100755
+index a3fba6b..0523db0 100755
 --- a/src/tests/python/firewalld_rich.py
 +++ b/src/tests/python/firewalld_rich.py
 @@ -1,4 +1,4 @@
 -#!/usr/bin/python
 +#!/usr/bin/python3
- # -*- coding: utf-8 -*-
+ # SPDX-License-Identifier: GPL-2.0-or-later
  #
  # Copyright (C) 2013 Red Hat, Inc.
-diff --git a/src/tests/python/firewalld_test.py b/src/tests/python/firewalld_test.py
-index 0d8b4c7..8406625 100755
---- a/src/tests/python/firewalld_test.py
-+++ b/src/tests/python/firewalld_test.py
-@@ -1,4 +1,4 @@
--#!/usr/bin/python
-+#!/usr/bin/python3
- # -*- coding: utf-8 -*-
- #
- # Copyright (C) 2010-2012 Red Hat, Inc.

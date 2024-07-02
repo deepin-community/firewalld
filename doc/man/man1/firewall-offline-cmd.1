@@ -1,13 +1,13 @@
 '\" t
 .\"     Title: firewall-offline-cmd
 .\"    Author: Thomas Woerner <twoerner@redhat.com>
-.\" Generator: DocBook XSL Stylesheets vsnapshot <http://docbook.sf.net/>
+.\" Generator: DocBook XSL Stylesheets v1.79.1 <http://docbook.sf.net/>
 .\"      Date: 
 .\"    Manual: firewall-offline-cmd
-.\"    Source: firewalld 1.0.2
+.\"    Source: firewalld 2.1.2
 .\"  Language: English
 .\"
-.TH "FIREWALL\-OFFLINE\-C" "1" "" "firewalld 1.0.2" "firewall-offline-cmd"
+.TH "FIREWALL\-OFFLINE\-C" "1" "" "firewalld 2.1.2" "firewall-offline-cmd"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -60,7 +60,7 @@ The following options are supported:
 .PP
 \fB\-h\fR, \fB\-\-help\fR
 .RS 4
-Prints a short help text and exists\&.
+Prints a short help text and exits\&.
 .RE
 .PP
 \fB\-V\fR, \fB\-\-version\fR
@@ -105,6 +105,11 @@ Run checks on the permanent (default and system) configuration\&. This includes 
 This is may be used with
 \fB\-\-system\-config\fR
 to check the validity of handwritten configuration files before copying them to the standard location\&.
+.RE
+.PP
+\fB\-\-reset\-to\-defaults\fR
+.RS 4
+Reset configuration to firewalld\*(Aqs default configuration
 .RE
 .SS "Lokkit Compatibility Options"
 .PP
@@ -427,7 +432,7 @@ List everything added or enabled\&.
 Get the target\&.
 .RE
 .PP
-[\fB\-\-zone\fR=\fIzone\fR] [\fB\-\-policy\fR=\fIpolicy\fR] \fB\-\-set\-target\fR=\fIzone\fR
+[\fB\-\-zone\fR=\fIzone\fR] [\fB\-\-policy\fR=\fIpolicy\fR] \fB\-\-set\-target\fR=\fItarget\fR
 .RS 4
 Set the target\&.
 .sp
@@ -804,6 +809,36 @@ Disable intra zone forwarding\&.
 .RS 4
 Return whether intra zone forwarding is enabled\&. Returns 0 if true, 1 otherwise\&.
 .RE
+.PP
+[\fB\-\-zone\fR=\fIzone\fR] \fB\-\-get\-priority\fR
+.RS 4
+Get the priority of the zone\&.
+.RE
+.PP
+[\fB\-\-zone\fR=\fIzone\fR] \fB\-\-set\-priority\fR
+.RS 4
+Set the zone\*(Aqs priority for packet classification\&. This will set both the ingress and egress priority\&.
+.RE
+.PP
+[\fB\-\-zone\fR=\fIzone\fR] \fB\-\-get\-ingress\-priority\fR
+.RS 4
+Get the ingress priority of the zone\&.
+.RE
+.PP
+[\fB\-\-zone\fR=\fIzone\fR] \fB\-\-set\-ingress\-priority\fR
+.RS 4
+Set the zone\*(Aqs ingress priority for packet classification\&.
+.RE
+.PP
+[\fB\-\-zone\fR=\fIzone\fR] \fB\-\-get\-egress\-priority\fR
+.RS 4
+Get the egress priority of the zone\&.
+.RE
+.PP
+[\fB\-\-zone\fR=\fIzone\fR] \fB\-\-set\-egress\-priority\fR
+.RS 4
+Set the zone\*(Aqs egress priority for packet classification\&.
+.RE
 .SS "Options to Adapt and Query Policies"
 .PP
 Options in this section affect only one particular policy\&. It\*(Aqs required to specify
@@ -1165,7 +1200,7 @@ Remove a port from the permanent service\&.
 .PP
 \fB\-\-service\fR=\fIservice\fR \fB\-\-query\-port\fR=\fIportid\fR[\-\fIportid\fR]/\fIprotocol\fR
 .RS 4
-Return wether the port has been added to the permanent service\&.
+Return whether the port has been added to the permanent service\&.
 .RE
 .PP
 \fB\-\-service\fR=\fIservice\fR \fB\-\-get\-ports\fR
@@ -1185,7 +1220,7 @@ Remove a protocol from the permanent service\&.
 .PP
 \fB\-\-service\fR=\fIservice\fR \fB\-\-query\-protocol\fR=\fIprotocol\fR
 .RS 4
-Return wether the protocol has been added to the permanent service\&.
+Return whether the protocol has been added to the permanent service\&.
 .RE
 .PP
 \fB\-\-service\fR=\fIservice\fR \fB\-\-get\-protocols\fR
@@ -1205,7 +1240,7 @@ Remove a source port from the permanent service\&.
 .PP
 \fB\-\-service\fR=\fIservice\fR \fB\-\-query\-source\-port\fR=\fIportid\fR[\-\fIportid\fR]/\fIprotocol\fR
 .RS 4
-Return wether the source port has been added to the permanent service\&.
+Return whether the source port has been added to the permanent service\&.
 .RE
 .PP
 \fB\-\-service\fR=\fIservice\fR \fB\-\-get\-source\-ports\fR
@@ -1225,7 +1260,7 @@ Remove a helper from the permanent service\&.
 .PP
 \fB\-\-service\fR=\fIservice\fR \fB\-\-query\-helper\fR=\fIhelper\fR
 .RS 4
-Return wether the helper has been added to the permanent service\&.
+Return whether the helper has been added to the permanent service\&.
 .RE
 .PP
 \fB\-\-service\fR=\fIservice\fR \fB\-\-get\-service\-helpers\fR
@@ -1245,7 +1280,7 @@ Remove the destination for ipv from the permanent service\&.
 .PP
 \fB\-\-service\fR=\fIservice\fR \fB\-\-query\-destination\fR=\fIipv\fR:\fIaddress\fR[/\fImask\fR]
 .RS 4
-Return wether the destination ipv to address[/mask] has been set in the permanent service\&.
+Return whether the destination ipv to address[/mask] has been set in the permanent service\&.
 .RE
 .PP
 \fB\-\-service\fR=\fIservice\fR \fB\-\-get\-destinations\fR
@@ -1265,7 +1300,7 @@ Remove a include from the permanent service\&.
 .PP
 \fB\-\-service\fR=\fIservice\fR \fB\-\-query\-include\fR=\fIservice\fR
 .RS 4
-Return wether the include has been added to the permanent service\&.
+Return whether the include has been added to the permanent service\&.
 .RE
 .PP
 \fB\-\-service\fR=\fIservice\fR \fB\-\-get\-includes\fR
@@ -1363,7 +1398,7 @@ Remove a port from the permanent helper\&.
 .PP
 \fB\-\-helper\fR=\fIhelper\fR \fB\-\-query\-port\fR=\fIportid\fR[\-\fIportid\fR]/\fIprotocol\fR
 .RS 4
-Return wether the port has been added to the permanent helper\&.
+Return whether the port has been added to the permanent helper\&.
 .RE
 .PP
 \fB\-\-helper\fR=\fIhelper\fR \fB\-\-get\-ports\fR
@@ -1860,11 +1895,6 @@ Change Polkit actions to \*(Aqdesktop\*(Aq (less restricted)
 firewalld home page:
 .RS 4
 \m[blue]\fB\%http://firewalld.org\fR\m[]
-.RE
-.PP
-More documentation with examples:
-.RS 4
-\m[blue]\fB\%http://fedoraproject.org/wiki/FirewallD\fR\m[]
 .RE
 .SH "AUTHORS"
 .PP

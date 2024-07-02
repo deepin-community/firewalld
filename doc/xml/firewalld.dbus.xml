@@ -7,25 +7,15 @@
 ]>
 
 <!--
+  SPDX-License-Identifier: GPL-2.0-or-later
+
   This file is part of firewalld.
 
   Copyright (C) 2010-2014 Red Hat, Inc.
+
   Authors:
   Thomas Woerner <twoerner@redhat.com>
   Jiri Popelka <jpopelka@redhat.com>
-
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -->
 
 <refentry id="firewalld.dbus">
@@ -130,11 +120,20 @@
 		Reload firewall completely, even netfilter kernel modules.
 		This will most likely terminate active connections, because state information is lost.
 		This option should only be used in case of severe firewall problems.
-		For example if there are state information problems that no connection can be established with correct firewall rules. 
+		For example if there are state information problems that no connection can be established with correct firewall rules.
               </para>
             </listitem>
           </varlistentry>
           <varlistentry>
+          <varlistentry>
+            <term><methodname>resetToDefaults</methodname>() &rarr; Nothing</term>
+            <listitem>
+              <para>
+		Reset firewall to its default configuration, then reload firewall.
+    This effects both runtime and permanent configuration.
+              </para>
+            </listitem>
+          </varlistentry>
             <term><methodname>disablePanicMode</methodname>() &rarr; Nothing</term>
             <listitem>
               <para>
@@ -230,7 +229,7 @@
             <term><methodname>getLogDenied</methodname>() &rarr; s</term>
             <listitem>
               <para>
-		Retruns the LogDenied value.
+		Returns the LogDenied value.
 		If LogDenied is enabled, then logging rules are added right before reject and drop rules in the INPUT, FORWARD and OUTPUT chains for the default rules and also final reject and drop rules in zones.
 		Possible values are: <literal>all</literal>, <literal>unicast</literal>, <literal>broadcast</literal>, <literal>multicast</literal> and <literal>off</literal>.
 		The default value is <literal>off</literal>
@@ -252,7 +251,7 @@
               <para>
                 Return runtime settings of given <replaceable>service</replaceable>.
                 For getting permanent settings see <link linkend="FirewallD1.config.service.Methods.getSettings2">org.fedoraproject.FirewallD1.config.service.Methods.getSettings2</link>.
-                Settings are a dictionary indexed by keywords. For the type of each value see below. If the value is empty it may be ommitted.
+                Settings are a dictionary indexed by keywords. For the type of each value see below. If the value is empty it may be omitted.
               </para>
               <para>
                 <variablelist>
@@ -488,7 +487,7 @@
     <refsect2 id="FirewallD1.ipset">
       <title>org.fedoraproject.FirewallD1.ipset</title>
       <para>
-	Operations in this interface allows to get, add, remove and query runtime ipset settings.
+	Operations in this interface allows one to get, add, remove and query runtime ipset settings.
 	For permanent configuration see <link linkend="FirewallD1.config.ipset">org.fedoraproject.FirewallD1.config.ipset</link> interface.
       </para>
 
@@ -524,7 +523,7 @@
           </varlistentry>
 
           <varlistentry id="FirewallD1.ipset.Methods.getIPSetSettings">
-            <term><methodname>getSettings</methodname>(s: ipset) &rarr; (ssssa{ss}as)</term>
+            <term><methodname>getIPSetSettings</methodname>(s: ipset) &rarr; (ssssa{ss}as)</term>
             <listitem>
               <para>
                 Return runtime settings of given <replaceable>ipset</replaceable>.
@@ -630,7 +629,7 @@
     <refsect2 id="FirewallD1.direct">
       <title>org.fedoraproject.FirewallD1.direct</title>
 
-      
+
       <refsect3>
         <title>DEPRECATED</title>
 
@@ -923,7 +922,7 @@
             <term>ChainAdded(s: ipv, s: table, s: chain)</term>
             <listitem>
               <para>
-		Emitted when <replaceable>chain</replaceable> has been added into <replaceable>table</replaceable> for <replaceable>ipv</replaceable> being either <literal>ipv4</literal> (iptables) or <literal>ipv6</literal> (ip6tables) or <literal>eb</literal> (ebtables). 
+		Emitted when <replaceable>chain</replaceable> has been added into <replaceable>table</replaceable> for <replaceable>ipv</replaceable> being either <literal>ipv4</literal> (iptables) or <literal>ipv6</literal> (ip6tables) or <literal>eb</literal> (ebtables).
               </para>
             </listitem>
           </varlistentry>
@@ -931,7 +930,7 @@
             <term>ChainRemoved(s: ipv, s: table, s: chain)</term>
             <listitem>
               <para>
-		Emitted when <replaceable>chain</replaceable> has been removed from <replaceable>table</replaceable> for <replaceable>ipv</replaceable> being either <literal>ipv4</literal> (iptables) or <literal>ipv6</literal> (ip6tables) or <literal>eb</literal> (ebtables). 
+		Emitted when <replaceable>chain</replaceable> has been removed from <replaceable>table</replaceable> for <replaceable>ipv</replaceable> being either <literal>ipv4</literal> (iptables) or <literal>ipv6</literal> (ip6tables) or <literal>eb</literal> (ebtables).
               </para>
             </listitem>
           </varlistentry>
@@ -939,7 +938,7 @@
             <term>PassthroughAdded(s: ipv, as: args)</term>
             <listitem>
               <para>
-		Emitted when a tracked passthruogh rule with <replaceable>args</replaceable> has been added for <replaceable>ipv</replaceable> being either <literal>ipv4</literal> (iptables) or <literal>ipv6</literal> (ip6tables) or <literal>eb</literal> (ebtables).
+		Emitted when a tracked passthrough rule with <replaceable>args</replaceable> has been added for <replaceable>ipv</replaceable> being either <literal>ipv4</literal> (iptables) or <literal>ipv6</literal> (ip6tables) or <literal>eb</literal> (ebtables).
               </para>
             </listitem>
           </varlistentry>
@@ -1281,7 +1280,7 @@
     <refsect2 id="FirewallD1.zone">
       <title>org.fedoraproject.FirewallD1.zone</title>
       <para>
-	Operations in this interface allows to get, add, remove and query runtime zone's settings.
+	Operations in this interface allows one to get, add, remove and query runtime zone's settings.
 	For permanent settings see <link linkend="FirewallD1.config.zone">org.fedoraproject.FirewallD1.config.zone</link> interface.
       </para>
 
@@ -1314,6 +1313,8 @@
                   <varlistentry><term><parameter>source_ports (a(ss))</parameter>: array of port and protocol pairs. See <literal>source-port</literal> tag in <citerefentry><refentrytitle>firewalld.zone</refentrytitle><manvolnum>5</manvolnum></citerefentry>.</term></varlistentry>
                   <varlistentry><term><parameter>icmp_block_inversion (b)</parameter>: see <literal>icmp-block-inversion</literal> tag in <citerefentry><refentrytitle>firewalld.zone</refentrytitle><manvolnum>5</manvolnum></citerefentry>.</term></varlistentry>
                   <varlistentry><term><parameter>forward (b)</parameter>: see <literal>forward</literal> tag in <citerefentry><refentrytitle>firewalld.zone</refentrytitle><manvolnum>5</manvolnum></citerefentry>.</term></varlistentry>
+                  <varlistentry><term><parameter>ingress-priority (i)</parameter>: see <literal>ingress-priority</literal> tag in <citerefentry><refentrytitle>firewalld.zone</refentrytitle><manvolnum>5</manvolnum></citerefentry>.</term></varlistentry>
+                  <varlistentry><term><parameter>egress-priority (i)</parameter>: see <literal>egress-priority</literal> tag in <citerefentry><refentrytitle>firewalld.zone</refentrytitle><manvolnum>5</manvolnum></citerefentry>.</term></varlistentry>
                 </variablelist>
               </para>
               <para>
@@ -2313,7 +2314,7 @@
     <refsect2 id="FirewallD1.policy">
       <title>org.fedoraproject.FirewallD1.policy</title>
       <para>
-        Operations in this interface allows to get, add, remove and query runtime policy settings.
+        Operations in this interface allows one to get, add, remove and query runtime policy settings.
         For permanent settings see <link linkend="FirewallD1.config.policy">org.fedoraproject.FirewallD1.config.policy</link> interface.
       </para>
 
@@ -2391,7 +2392,7 @@
     <refsect2 id="FirewallD1.config">
       <title>org.fedoraproject.FirewallD1.config</title>
       <para>
-	Allows to permanently add, remove and query zones, services and icmp types.
+	Allows one to permanently add, remove and query zones, services and icmp types.
       </para>
 
       <refsect3 id="FirewallD1.config.Methods">
@@ -2509,6 +2510,8 @@
                   <varlistentry><term><parameter>source_ports (a(ss))</parameter>: array of port and protocol pairs. See <literal>source-port</literal> tag in <citerefentry><refentrytitle>firewalld.zone</refentrytitle><manvolnum>5</manvolnum></citerefentry>.</term></varlistentry>
                   <varlistentry><term><parameter>icmp_block_inversion (b)</parameter>: see <literal>icmp-block-inversion</literal> tag in <citerefentry><refentrytitle>firewalld.zone</refentrytitle><manvolnum>5</manvolnum></citerefentry>.</term></varlistentry>
                   <varlistentry><term><parameter>forward (b)</parameter>: see <literal>forward</literal> tag in <citerefentry><refentrytitle>firewalld.zone</refentrytitle><manvolnum>5</manvolnum></citerefentry>.</term></varlistentry>
+                  <varlistentry><term><parameter>ingress_priority (i)</parameter>: see <literal>ingress-priority</literal> tag in <citerefentry><refentrytitle>firewalld.zone</refentrytitle><manvolnum>5</manvolnum></citerefentry>.</term></varlistentry>
+                  <varlistentry><term><parameter>egress_priority (i)</parameter>: see <literal>egress-priority</literal> tag in <citerefentry><refentrytitle>firewalld.zone</refentrytitle><manvolnum>5</manvolnum></citerefentry>.</term></varlistentry>
                 </variablelist>
               </para>
               <para>
@@ -2889,6 +2892,26 @@
                 As per RFC 3964, filter IPv6 traffic with 6to4 destination
                 addresses that correspond to IPv4 addresses that should not be
                 routed over the public internet. Valid options are; yes, no.
+              </para>
+            </listitem>
+          </varlistentry>
+          <varlistentry id="FirewallD1.config.Properties.NftablesFlowtable">
+            <term>NftablesFlowtable - s - (rw)</term>
+            <listitem>
+              <para>
+                This may improve forwarded traffic throughput by enabling
+                nftables flowtable. It is a software fastpath and avoids
+                calling nftables rule evaluation for data packets. Its
+                value is a space separate list of interfaces.
+              </para>
+            </listitem>
+          </varlistentry>
+          <varlistentry id="FirewallD1.config.Properties.NftablesCounters">
+            <term>NftablesCounters - s - (rw)</term>
+            <listitem>
+              <para>
+                If set to yes, add a counter to every nftables rule. This is
+                useful for debugging and comes with a small performance cost.
               </para>
             </listitem>
           </varlistentry>
@@ -3510,7 +3533,7 @@
             <term><methodname>getSettings</methodname>() &rarr; (ssssa{ss}as)</term>
             <listitem>
               <para>
-                Return permament settings of the ipset.
+                Return permanent settings of the ipset.
 		For getting runtime settings see <link linkend="FirewallD1.ipset.Methods.getIPSetSettings">org.fedoraproject.FirewallD1.ipset.Methods.getIPSetSettings</link>.
                 Settings are in format: <parameter>version</parameter>, <parameter>name</parameter>, <parameter>description</parameter>, <parameter>type</parameter>, dictionary of <parameter>options</parameter> and array of <parameter>entries</parameter>.
               </para>
@@ -3707,7 +3730,7 @@
           </varlistentry>
 	</variablelist>
       </refsect3>
-      
+
       <refsect3 id="FirewallD1.config.ipset.Signals">
         <title>Signals</title>
         <variablelist>
@@ -4068,6 +4091,8 @@
                   <varlistentry><term><parameter>source_ports (a(ss))</parameter>: array of port and protocol pairs. See <literal>source-port</literal> tag in <citerefentry><refentrytitle>firewalld.zone</refentrytitle><manvolnum>5</manvolnum></citerefentry>.</term></varlistentry>
                   <varlistentry><term><parameter>icmp_block_inversion (b)</parameter>: see <literal>icmp-block-inversion</literal> tag in <citerefentry><refentrytitle>firewalld.zone</refentrytitle><manvolnum>5</manvolnum></citerefentry>.</term></varlistentry>
                   <varlistentry><term><parameter>forward (b)</parameter>: see <literal>forward</literal> tag in <citerefentry><refentrytitle>firewalld.zone</refentrytitle><manvolnum>5</manvolnum></citerefentry>.</term></varlistentry>
+                  <varlistentry><term><parameter>ingress_priority (i)</parameter>: see <literal>ingress-priority</literal> tag in <citerefentry><refentrytitle>firewalld.zone</refentrytitle><manvolnum>5</manvolnum></citerefentry>.</term></varlistentry>
+                  <varlistentry><term><parameter>egress_priority (i)</parameter>: see <literal>egress-priority</literal> tag in <citerefentry><refentrytitle>firewalld.zone</refentrytitle><manvolnum>5</manvolnum></citerefentry>.</term></varlistentry>
                 </variablelist>
               </para>
             </listitem>
@@ -4576,6 +4601,8 @@
                   <varlistentry><term><parameter>source_ports (a(ss))</parameter>: array of port and protocol pairs. See <literal>source-port</literal> tag in <citerefentry><refentrytitle>firewalld.zone</refentrytitle><manvolnum>5</manvolnum></citerefentry>.</term></varlistentry>
                   <varlistentry><term><parameter>icmp_block_inversion (b)</parameter>: see <literal>icmp-block-inversion</literal> tag in <citerefentry><refentrytitle>firewalld.zone</refentrytitle><manvolnum>5</manvolnum></citerefentry>.</term></varlistentry>
                   <varlistentry><term><parameter>forward (b)</parameter>: see <literal>forward</literal> tag in <citerefentry><refentrytitle>firewalld.zone</refentrytitle><manvolnum>5</manvolnum></citerefentry>.</term></varlistentry>
+                  <varlistentry><term><parameter>ingress_priority (i)</parameter>: see <literal>ingress-priority</literal> tag in <citerefentry><refentrytitle>firewalld.zone</refentrytitle><manvolnum>5</manvolnum></citerefentry>.</term></varlistentry>
+                  <varlistentry><term><parameter>egress_priority (i)</parameter>: see <literal>egress-priority</literal> tag in <citerefentry><refentrytitle>firewalld.zone</refentrytitle><manvolnum>5</manvolnum></citerefentry>.</term></varlistentry>
                 </variablelist>
               </para>
           <para>
@@ -4934,7 +4961,7 @@
               <para>
                 Return runtime settings of given <replaceable>service</replaceable>.
                 For getting runtime settings see <link linkend="FirewallD1.Methods.getServiceSettings2">org.fedoraproject.FirewallD1.Methods.getServiceSettings2</link>.
-                Settings are a dictionary indexed by keywords. For the type of each value see below. If the value is empty it may be ommitted.
+                Settings are a dictionary indexed by keywords. For the type of each value see below. If the value is empty it may be omitted.
               </para>
               <para>
                 <variablelist>

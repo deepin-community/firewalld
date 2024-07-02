@@ -1,5 +1,5 @@
 m4_define([FWD_STOP_FIREWALLD], [
-    pid=$(< firewalld.pid)
+    pid=$(cat firewalld.pid)
     kill $pid
     for I in 1 2 3 4 5 6 7 8 9 0; do
         ps --pid $pid >/dev/null || { pid=0; break; }
@@ -13,7 +13,7 @@ m4_define([FWD_START_FIREWALLD], [
     dnl if testsuite ran with debug flag, add debug output
     ${at_debug_p} && FIREWALLD_ARGS="--debug=9 ${FIREWALLD_ARGS}"
     if test "x${FIREWALLD_DEFAULT_CONFIG}" != x ; then
-        FIREWALLD_ARGS+=" --default-config ${FIREWALLD_DEFAULT_CONFIG}"
+        FIREWALLD_ARGS="${FIREWALLD_ARGS} --default-config ${FIREWALLD_DEFAULT_CONFIG}"
     fi
 
     NS_CMD([firewalld $FIREWALLD_ARGS &])
@@ -23,9 +23,13 @@ m4_define([FWD_START_FIREWALLD], [
     echo "$!" > firewalld.pid
 
     dnl Give it some time for the dbus interface to come up
+    WANTED_CODE="$1"
     up=0
-    for I in 1 2 3 4 5 6 7 8 9 0; do
-        if NS_CMD([firewall-cmd --state]); then
+    for I in $(seq 60); do
+        NS_CMD([firewall-cmd --state])
+        RC=$?
+        echo "exit code = ${RC}"
+        if test ${RC} -eq ${WANTED_CODE:-0}; then
             up=1
             break
         fi
@@ -46,6 +50,9 @@ plugins=
 [[logging]]
 #level=DEBUG
 #domains=ALL
+
+[[keyfile]]
+unmanaged-devices=*,except:type:dummy,except:type:ovs-bridge,except:type:ovs-port,except:type:ovs-interface
 ])
 
     NM_ARGS="--no-daemon --config ./NetworkManager.conf"
@@ -68,7 +75,7 @@ plugins=
 ])
 
 m4_define([STOP_NETWORKMANAGER], [
-    pid=$(< networkmanager.pid)
+    pid=$(cat networkmanager.pid)
     kill $pid
     for I in 1 2 3 4 5 6 7 8 9 0; do
         ps --pid $pid >/dev/null || { pid=0; break; }
@@ -83,13 +90,19 @@ m4_define([FWD_RELOAD], [
 ])
 
 m4_define([FWD_RESTART], [
-    FWD_STOP_FIREWALLD
-    FWD_START_FIREWALLD
+    FWD_STOP_FIREWALLD()
+    FWD_START_FIREWALLD([$1])
 ])
 
 m4_define([FWD_START_TEST], [
     AT_SETUP([$1])
     AT_KEYWORDS(FIREWALL_BACKEND)
+    AT_KEYWORDS(__file__:__line__)
+    AT_KEYWORDS(__file__)
+    AT_KEYWORDS(AT_LINE)
+    AT_KEYWORDS([m4_bregexp(__file__, [^.*/\([^/]*\)$], [\1])])
+    AT_KEYWORDS([m4_bregexp(__file__, [^.*/\([^/]*\)\.at$], [\1])])
+    AT_KEYWORDS([m4_bregexp(__file__, [^\(.*\)/[^/]*$], [\1])])
 
     dnl Default values for things that should be defined in atlocal. If atlocal
     dnl can't be found it's likely because the testsuite is run "standalone" and
@@ -97,6 +110,7 @@ m4_define([FWD_START_TEST], [
     dnl in atlocal.
     dnl
     test -z "$PYTHON" && export PYTHON="python3"
+    test -z "$EBTABLES" && export EBTABLES="ebtables"
     test -z "$IPTABLES" && export IPTABLES="iptables"
     test -z "$IPTABLES_RESTORE" && export IPTABLES_RESTORE="iptables-restore"
     test -z "$IP6TABLES" && export IP6TABLES="ip6tables"
@@ -108,6 +122,15 @@ m4_define([FWD_START_TEST], [
     if locale -a |grep "^C.utf8" >/dev/null; then
         LC_ALL="C.UTF-8"
         export LC_ALL
+    fi
+
+    dnl limit data (and heap) to catch unexpected increases in memory usage
+    ULIMIT_VAL="$2"
+    if test -z "$ULIMIT_VAL" ; then
+        ULIMIT_VAL=102400
+    fi
+    if test "$ULIMIT_VAL" -ne 0 ; then
+        ulimit -d "$ULIMIT_VAL"
     fi
 
     dnl start every test with the default config
@@ -131,10 +154,10 @@ m4_define([FWD_START_TEST], [
         ])
 
         dnl dummy wrapper for trap syntax
-        function kill_firewalld() {
+        kill_firewalld() {
             FWD_STOP_FIREWALLD
         }
-        function kill_networkmanager() {
+        kill_networkmanager() {
             if test -f networkmanager.pid; then
                 STOP_NETWORKMANAGER
             fi
@@ -148,10 +171,11 @@ m4_define([FWD_START_TEST], [
         dnl create a namespace and dbus-daemon
         m4_ifdef([TESTING_INTEGRATION], [], [
             m4_define([CURRENT_DBUS_ADDRESS], [unix:abstract=firewalld-testsuite-dbus-system-socket-${at_group_normalized}])
+
+            m4_define([CURRENT_TEST_NS], [fwd-test-${at_group_normalized}])
+            echo "ip netns delete CURRENT_TEST_NS" >> ./cleanup_late
+            AT_CHECK([ip netns add CURRENT_TEST_NS])
         ])
-        m4_define([CURRENT_TEST_NS], [fwd-test-${at_group_normalized}])
-        echo "ip netns delete CURRENT_TEST_NS" >> ./cleanup_late
-        AT_CHECK([ip netns add CURRENT_TEST_NS])
         m4_if(iptables, FIREWALL_BACKEND, [
             CHECK_IPTABLES
         ])
@@ -228,7 +252,7 @@ m4_define([FWD_START_TEST], [
             </busconfig>
 ])
         m4_ifdef([TESTING_INTEGRATION], [
-            AT_SKIP_IF([NS_CMD([pgrep firewalld >/dev/null 2>&1])])
+            AT_SKIP_IF([pgrep firewalld >/dev/null 2>&1])
 
             dnl dbus has a firewalld spec
             AT_SKIP_IF([! test -r /usr/share/dbus-1/system.d/FirewallD.conf])
@@ -261,7 +285,7 @@ m4_define([FWD_END_TEST], [
                        [grep '^[0-9-]*[ ]\+[0-9:]*[ ]\+\(ERROR\|WARNING\)']])
         fi
         m4_ifdef([CURRENT_DBUS_ADDRESS], [m4_undefine([CURRENT_DBUS_ADDRESS])])
-        m4_undefine([CURRENT_TEST_NS])
+        m4_ifdef([CURRENT_TEST_NS], [m4_undefine([CURRENT_TEST_NS])])
     ])
     AT_CLEANUP
 ])
@@ -269,7 +293,7 @@ m4_define([FWD_END_TEST], [
 m4_define([FWD_OFFLINE_CHECK], [
     FIREWALL_OFFLINE_CMD_ARGS="--system-config ./"
     if test "x${FIREWALLD_DEFAULT_CONFIG}" != x ; then
-        FIREWALL_OFFLINE_CMD_ARGS+=" --default-config ${FIREWALLD_DEFAULT_CONFIG}"
+        FIREWALL_OFFLINE_CMD_ARGS="${FIREWALL_OFFLINE_CMD_ARGS} --default-config ${FIREWALLD_DEFAULT_CONFIG}"
     fi
 
     AT_CHECK([firewall-offline-cmd $FIREWALL_OFFLINE_CMD_ARGS $1], [$2], [$3], [$4], [$5], [$6])
@@ -304,6 +328,9 @@ m4_define([FWD_CHECK], [
                 m4_if(-1, m4_index([$1], [--timeout]), [
                     m4_define([FWD_CHECK_RUN_FIREWALL_OFFLINE_CMD])
                 ], [])
+            ])
+            m4_if(-1, m4_index([$1], [--reset-to-defaults]), [], [
+                m4_define([FWD_CHECK_RUN_FIREWALL_OFFLINE_CMD])
             ])
         ])
 
@@ -340,8 +367,9 @@ m4_define([m4_strip],
                      [^ ?\(.*\) ?$], [\1])])
 
 m4_define([NS_CMD], [dnl
-    m4_ifdef([TESTING_INTEGRATION], [], [env DBUS_SYSTEM_BUS_ADDRESS="CURRENT_DBUS_ADDRESS"]) dnl command continues to next line
-    ip netns exec CURRENT_TEST_NS $1 dnl
+    m4_ifdef([TESTING_INTEGRATION], [$1], [dnl
+        env DBUS_SYSTEM_BUS_ADDRESS="CURRENT_DBUS_ADDRESS" ip netns exec CURRENT_TEST_NS $1 dnl
+    ]) dnl
 ])
 
 m4_define([NS_CHECK], [
@@ -365,14 +393,35 @@ m4_define([EBTABLES_LIST_RULES_NORMALIZE], [dnl
 m4_define([EBTABLES_LIST_RULES], [
     dnl ebtables commit 5f508b76a0ce change list output for inversion.
     m4_ifdef([TESTING_FIREWALL_OFFLINE_CMD], [], [
-        NS_CHECK([PIPESTATUS0([ebtables --concurrent -t $1 -L $2], [EBTABLES_LIST_RULES_NORMALIZE])],
+        NS_CHECK([PIPESTATUS0([$EBTABLES --concurrent -t $1 -L $2], [EBTABLES_LIST_RULES_NORMALIZE])],
                  [$3], [m4_strip([$4])], [m4_strip([$5])], [$6], [$7])
     ])
 ])
 
-m4_define([IPTABLES_LIST_RULES_NORMALIZE], [dnl
+m4_define([IPXTABLES_LIST_RULES_NORMALIZE], [dnl
     TRIM_WHITESPACE | dnl
-    tail -n +3 dnl
+    tail -n +3 | dnl
+    dnl iptables-1.8.8 changed output of some protocols
+    dnl commit b6196c7504d4 ("xshared: Prefer xtables_chain_protos lookup over getprotoent")
+    sed -e ['s/[ ]ipv6-icmp\([ -]\)/ icmpv6\1/g'] dnl
+    dnl commit da8ecc62dd76 ("xshared: Print protocol numbers if --numeric was given")
+    dnl Caused protocols to be printed in numeric form. We use numeric to avoid
+    dnl reverse DNS lookups. "fix" old iptables versions by translating to
+    dnl numeric here. The first regex must match zone/policy names.
+        -e ['s/^\([-a-zA-Z0-9_]\+\)[ ]all/\1 0/g'] dnl
+        -e ['s/^\([-a-zA-Z0-9_]\+\)[ ]tcp/\1 6/g'] dnl
+        -e ['s/^\([-a-zA-Z0-9_]\+\)[ ]udp/\1 17/g'] dnl
+        -e ['s/^\([-a-zA-Z0-9_]\+\)[ ]icmpv6/\1 58 /g'] dnl
+        -e ['s/^\([-a-zA-Z0-9_]\+\)[ ]icmp/\1 1/g'] dnl
+        -e ['s/^\([-a-zA-Z0-9_]\+\)[ ]sctp/\1 132/g'] dnl
+    dnl commit 6e41c2d8747b ("iptables: xshared: Output '--' in the opt field
+    dnl in ipv6's fake mode") added "--" to the output of ip6tables. This regex
+    dnl adds the "--" for older ip6tables versions.
+        -e ['s/^\([-a-zA-Z0-9_]\+\)[ ]\([^ ]*\)[ ][-]\?[-]\?[ ]\?/\1 \2 -- /g'] dnl
+])
+
+m4_define([IPTABLES_LIST_RULES_NORMALIZE], [dnl
+    IPXTABLES_LIST_RULES_NORMALIZE() dnl
 ])
 
 m4_define([IPTABLES_LIST_RULES_ALWAYS], [
@@ -389,8 +438,7 @@ m4_define([IPTABLES_LIST_RULES], [
 ])
 
 m4_define([IP6TABLES_LIST_RULES_NORMALIZE], [dnl
-    TRIM_WHITESPACE | dnl
-    tail -n +3 dnl
+    IPXTABLES_LIST_RULES_NORMALIZE() dnl
 ])
 
 m4_define([IP6TABLES_LIST_RULES_ALWAYS], [
@@ -423,6 +471,11 @@ m4_define([NFT_LIST_RULES_NORMALIZE], [dnl
         -e ['s/\(icmp\|icmpv6\|icmpx\) type \([a-z-]\+\)/\1 \2/g'] dnl
         dnl transform bare "reject" to "reject with icmp port-unreachable"
         -e ['s/reject$/reject with icmp port-unreachable/g'] dnl
+        dnl newer nft always outputs the default value of "burst"
+        -e ['s/burst 5 packets //g'] dnl
+        dnl newer nft replace ICMP reject aliases with code values
+        dnl nftables commit 5fecd2a6ef61 ("src: disentangle ICMP code types")
+        -e ['s/\(icmp\|icmpv6\|icmpx\) code no-route/\1 code 0/g'] dnl
 ])
 
 m4_define([NFT_LIST_RULES_ALWAYS], [
@@ -444,12 +497,18 @@ m4_define([IPSET_LIST_SET_NORMALIZE], [dnl
     awk 'NR <= 3; NR > 3 {print | "sort"}' dnl
 ])
 
-m4_define([IPSET_LIST_SET], [
+m4_define([IPSET_LIST_SET_ALWAYS], [
     m4_ifdef([TESTING_FIREWALL_OFFLINE_CMD], [], [
         if $IPSET list >/dev/null 2>&1; then
             NS_CHECK([PIPESTATUS0([$IPSET list $1], [IPSET_LIST_SET_NORMALIZE])],
                      [$2], [m4_strip([$3])], [m4_strip([$4])], [$5], [$6])
         fi
+    ])
+])
+
+m4_define([IPSET_LIST_SET], [
+    m4_if(iptables, FIREWALL_BACKEND, [
+        IPSET_LIST_SET_ALWAYS([$1], [$2], [$3], [$4], [$5], [$6])
     ])
 ])
 
@@ -591,6 +650,8 @@ m4_define([CHECK_NFT_CT_HELPER], [
 ])
 
 m4_define([CHECK_MODULE_PROTO_GRE], [
+    dnl Newer kernels use a built-in so the module nf_conntrack_proto_gre
+    dnl doesn't exist. Skip the test in that case.
     AT_SKIP_IF([! NS_CMD([modinfo nf_conntrack_proto_gre])])
 ])
 
@@ -667,4 +728,62 @@ m4_define([IF_HOST_SUPPORTS_NFT_RULE_INDEX], [
         NS_CHECK([rm ./nft_rule_index.nft])
         NS_CHECK([nft delete table inet firewalld_check_rule_index])
     ], [$1])
+])
+
+dnl check for NetworkManager's OVS support
+dnl skip the test if it's not present
+m4_define([CHECK_NM_CAPABILITY_OVS], [
+    AT_SKIP_IF([! NS_CMD([which busctl >/dev/null 2>&1])])
+    NS_CHECK([busctl get-property \
+                     org.freedesktop.NetworkManager \
+                     /org/freedesktop/NetworkManager \
+                     org.freedesktop.NetworkManager \
+                     Capabilities | \
+              grep -q ['^au [0-9 ]*\<2\>'] \
+              || exit 77 # 77 skips, see AT_CHECK
+    ])
+])
+
+m4_define([IF_BACKEND_IS_DEFAULT], [
+    m4_if(nftables, FIREWALL_BACKEND, [$1], [])
+])
+
+m4_define([CHECK_NFTABLES_FLOWTABLE], [
+    m4_if(nftables, FIREWALL_BACKEND, [
+        NS_CHECK([nft add table inet firewalld_check_flowtable])
+        AT_SKIP_IF([! NS_CMD([nft add flowtable inet firewalld_check_flowtable foobar { hook ingress priority 0 \; } >/dev/null 2>&1])])
+        NS_CHECK([nft delete table inet firewalld_check_flowtable])
+    ])
+])
+
+m4_define([SKIP_IF_FW_IN_CONTAINER], [
+    dnl With contrib/fw-in-container script, we run a rootless (privileged) container.
+    dnl We recognize by having "$FW_IN_CONTAINER" set in the environment variables.
+    dnl
+    dnl Some test won't pass, because the socket buffer sizes are limited for rootless.
+    dnl We skip those tests, except, if we detect that the limits are large.
+    AT_SKIP_IF([test -n "$FW_IN_CONTAINER" -a "(" "$(cat /proc/sys/net/core/rmem_max 2>/dev/null || cat /.host/proc/sys/net/core/rmem_max 2>/dev/null || echo 0)" -lt 4096000 -o "$(cat /proc/sys/net/core/wmem_max 2>/dev/null  || cat /.host/proc/sys/net/core/wmem_max 2>/dev/null || echo 0)" -lt 4096000 -o "$(cat /proc/sys/net/core/wmem_default 2>/dev/null  || cat /.host/proc/sys/net/core/wmem_default 2>/dev/null || echo 0)" -lt 4096000 ")" ])
+])
+
+m4_define([SKIP_IF_FW_IN_CONTAINER_WITH_NFTABLES], [
+    m4_if(nftables, FIREWALL_BACKEND, [
+        dnl With contrib/fw-in-container, we run a rootless (privileged)
+        dnl container.  With nftable backend there are various, well-known
+        dnl issues that cause tests to fail. In such an environment, the test
+        dnl is skipped.
+        dnl
+        dnl Common issues:
+        dnl
+        dnl 1) "/proc/sys/net/core/rmem_max" is too low for the test
+        dnl 2) "/proc/sys/net/core/wmem_max" is too low for the test
+        dnl 3) either "/proc/sys/net/core/wmem_default" is too low, or you need
+        dnl    to ensure to have patch [1] from nftables 1.0.8.
+        dnl    [1] https://git.netfilter.org/nftables/commit/?id=375505a4a8068bf7cb623e18c3aedb831c17fd0e
+        dnl
+        dnl You may be able to get the test to pass, if you ensure that the
+        dnl hindrance is resolved. Usually that means to grant the container
+        dnl certain root permissions or increase systemwide buffer sizes. Try to
+        dnl `unset FW_IN_CONTAINER` and re-run the test.
+        SKIP_IF_FW_IN_CONTAINER
+    ])
 ])

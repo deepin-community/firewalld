@@ -1,10 +1,10 @@
 Summary: A firewall daemon with D-Bus interface providing a dynamic firewall
 Name: firewalld
-Version: 1.0.2
+Version: 2.1.2
 Release: 1%{?dist}
 URL:     http://firewalld.org
-License: GPLv2+
-Source0: https://github.com/firewalld/firewalld/archive/v%{version}.tar.gz#/%{name}-%{version}.tar.gz
+License: GPL-2.0-or-later
+Source0: https://github.com/firewalld/firewalld/archive/v%{version}.tar.bz2#/%{name}-%{version}.tar.bz2
 BuildArch: noarch
 BuildRequires: autoconf
 BuildRequires: automake
@@ -18,7 +18,7 @@ BuildRequires: docbook-style-xsl
 BuildRequires: libxslt
 BuildRequires: iptables, ebtables, ipset
 BuildRequires: python3-devel
-Requires: iptables, ebtables, ipset
+Recommends: iptables, ebtables, ipset
 Requires(post): systemd
 Requires(preun): systemd
 Requires(postun): systemd
@@ -27,7 +27,7 @@ Requires: python3-firewall  = %{version}-%{release}
 Recommends: libcap-ng-python3
 
 %description
-firewalld is a firewall service daemon that provides a dynamic customizable 
+firewalld is a firewall service daemon that provides a dynamic customizable
 firewall with a D-Bus interface.
 
 %package -n python3-firewall
@@ -61,14 +61,18 @@ Summary: Firewall panel applet
 Requires: %{name} = %{version}-%{release}
 Requires: firewall-config = %{version}-%{release}
 Requires: hicolor-icon-theme
+%if (0%{?fedora} >= 39 || 0%{?rhel} >= 10)
+Requires: python3-pyqt6
+%else
 Requires: python3-qt5
+%endif
 Requires: python3-gobject
 Requires: libnotify
 Requires: NetworkManager-libnm
 Requires: dbus-x11
 
 %description -n firewall-applet
-The firewall panel applet provides a status information of firewalld and also 
+The firewall panel applet provides a status information of firewalld and also
 the firewall settings.
 
 %package -n firewall-config
@@ -82,7 +86,7 @@ Requires: dbus-x11
 Recommends: polkit
 
 %description -n firewall-config
-The firewall configuration application provides an configuration interface for 
+The firewall configuration application provides an configuration interface for
 firewalld.
 
 %prep
@@ -112,7 +116,7 @@ desktop-file-install --delete-original \
 %systemd_preun firewalld.service
 
 %postun
-%systemd_postun_with_restart firewalld.service 
+%systemd_postun_with_restart firewalld.service
 
 
 %post -n firewall-applet
@@ -145,7 +149,7 @@ fi
 /usr/bin/glib-compile-schemas %{_datadir}/glib-2.0/schemas &> /dev/null || :
 
 %files -f %{name}.lang
-%doc COPYING README
+%doc COPYING README.md CODE_OF_CONDUCT.md
 %{_sbindir}/firewalld
 %{_bindir}/firewall-cmd
 %{_bindir}/firewall-offline-cmd
@@ -154,11 +158,13 @@ fi
 %dir %{_datadir}/zsh/site-functions
 %{_datadir}/zsh/site-functions/_firewalld
 %{_prefix}/lib/firewalld/icmptypes/*.xml
-%{_prefix}/lib/firewalld/ipsets/README
+%{_prefix}/lib/firewalld/ipsets/README.md
 %{_prefix}/lib/firewalld/policies/*.xml
 %{_prefix}/lib/firewalld/services/*.xml
 %{_prefix}/lib/firewalld/zones/*.xml
 %{_prefix}/lib/firewalld/helpers/*.xml
+%{_prefix}/lib/firewalld/xmlschema/check.sh
+%{_prefix}/lib/firewalld/xmlschema/*.xsd
 %attr(0750,root,root) %dir %{_sysconfdir}/firewalld
 %config(noreplace) %{_sysconfdir}/firewalld/firewalld.conf
 %config(noreplace) %{_sysconfdir}/firewalld/lockdown-whitelist.xml
@@ -212,11 +218,12 @@ fi
 %dir %{_prefix}/lib/firewalld/policies
 %dir %{_prefix}/lib/firewalld/services
 %dir %{_prefix}/lib/firewalld/zones
+%dir %{_prefix}/lib/firewalld/xmlschema
 %{_rpmconfigdir}/macros.d/macros.firewalld
 
 %files -n firewalld-test
 %dir %{_datadir}/firewalld/testsuite
-%{_datadir}/firewalld/testsuite/README
+%{_datadir}/firewalld/testsuite/README.md
 %{_datadir}/firewalld/testsuite/testsuite
 %dir %{_datadir}/firewalld/testsuite/integration
 %{_datadir}/firewalld/testsuite/integration/testsuite
@@ -224,7 +231,7 @@ fi
 %{_datadir}/firewalld/testsuite/python/firewalld_config.py
 %{_datadir}/firewalld/testsuite/python/firewalld_direct.py
 %{_datadir}/firewalld/testsuite/python/firewalld_rich.py
-%{_datadir}/firewalld/testsuite/python/firewalld_test.py
+%{_datadir}/firewalld/testsuite/python/firewalld_misc.py
 
 %files -n firewall-applet
 %attr(0755,root,root) %dir %{_sysconfdir}/firewall
@@ -248,14 +255,11 @@ fi
 %{_mandir}/man1/firewall-config*.1*
 
 %changelog
-* Wed Nov 03 2021 Eric Garver <eric@garver.life> - 1.0.2-1
-- release v1.0.2
+* Fri Apr 12 2024 Eric Garver <eric@garver.life> - 2.1.2-1
+- release v2.1.2
 
-* Thu Aug 12 2021 Eric Garver <eric@garver.life> - 1.0.1-1
-- release v1.0.1
+* Mon Jan 29 2024 Eric Garver <eric@garver.life> - 2.1.1-1
+- release v2.1.1
 
-* Thu Jul 22 2021 Eric Garver <eric@garver.life> - 1.0.0-1
-- release v1.0.0
-
-* Tue May 25 2021 Eric Garver <eric@garver.life> - 1.0.0-0.1.alpha
-- release v1.0.0-alpha
+* Fri Jan 05 2024 Eric Garver <eric@garver.life> - 2.1.0-1
+- release v2.1.0

@@ -1,31 +1,19 @@
 #!/usr/bin/python -Es
-# -*- coding: utf-8 -*-
+# SPDX-License-Identifier: GPL-2.0-or-later
 #
 # Copyright (C) 2008,2012 Red Hat, Inc.
 #
 # Authors:
 # Thomas Woerner <twoerner@redhat.com>
 # Florian Festi <ffesti@redhat.com>
-#
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
 
 import gi
-gi.require_version('Gtk', '3.0')
+
+gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
-class ChooserButton(object):
+
+class ChooserButton:
     def __init__(self, button, default_label=""):
         self.button = button
         self.default_label = default_label
@@ -46,8 +34,9 @@ class ChooserButton(object):
                 button.remove(child)
             hbox = Gtk.HBox()
             self.label = Gtk.Label()
-            arrow = Gtk.Arrow(arrow_type=Gtk.ArrowType.DOWN,
-                              shadow_type=Gtk.ShadowType.IN)
+            arrow = Gtk.Arrow(
+                arrow_type=Gtk.ArrowType.DOWN, shadow_type=Gtk.ShadowType.IN
+            )
             hbox.set_spacing(2)
             hbox.pack_start(self.label, True, True, 0)
             hbox.pack_end(arrow, False, False, 0)
@@ -87,7 +76,7 @@ class ChooserButton(object):
             hbox = self.button.get_child()
             hbox.pack_start(self._icon, True, True, 0)
             hbox.reorder_child(self._icon, 0)
-            
+
         self._icon.set_from_stock(name, size)
 
     def reset(self):
@@ -136,10 +125,8 @@ class ChooserButton(object):
         return (x, y, True)
 
 
-class ToolChooserButton(object):
-    
-    def __init__(self, button, default_label=''):
-        
+class ToolChooserButton:
+    def __init__(self, button, default_label=""):
         self.button = button
         self.default_label = default_label
 

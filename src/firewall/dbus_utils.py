@@ -1,51 +1,33 @@
-# -*- coding: utf-8 -*-
+# SPDX-License-Identifier: GPL-2.0-or-later
 #
 # Copyright (C) 2011-2016 Red Hat, Inc.
 #
 # Authors:
 # Thomas Woerner <twoerner@redhat.com>
-#
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-
-__all__ = [ "command_of_pid", "pid_of_sender", "uid_of_sender", "user_of_uid",
-            "context_of_sender", "command_of_sender", "user_of_sender",
-            "dbus_to_python", "dbus_signature",
-            "dbus_introspection_prepare_properties",
-            "dbus_introspection_add_properties" ]
 
 import dbus
 import pwd
-from xml.dom import minidom
+import xml.etree.ElementTree as ET
 
 from firewall.core.logger import log
 
+
 def command_of_pid(pid):
-    """ Get command for pid from /proc """
+    """Get command for pid from /proc"""
     try:
         with open("/proc/%d/cmdline" % pid, "r") as f:
-            cmd = f.readlines()[0].replace('\0', " ").strip()
+            cmd = f.readlines()[0].replace("\0", " ").strip()
     except Exception:
         return None
     return cmd
 
-def pid_of_sender(bus, sender):
-    """ Get pid from sender string using 
-    org.freedesktop.DBus.GetConnectionUnixProcessID """
 
-    dbus_obj = bus.get_object('org.freedesktop.DBus', '/org/freedesktop/DBus')
-    dbus_iface = dbus.Interface(dbus_obj, 'org.freedesktop.DBus')
+def pid_of_sender(bus, sender):
+    """Get pid from sender string using
+    org.freedesktop.DBus.GetConnectionUnixProcessID"""
+
+    dbus_obj = bus.get_object("org.freedesktop.DBus", "/org/freedesktop/DBus")
+    dbus_iface = dbus.Interface(dbus_obj, "org.freedesktop.DBus")
 
     try:
         pid = int(dbus_iface.GetConnectionUnixProcessID(sender))
@@ -53,12 +35,13 @@ def pid_of_sender(bus, sender):
         return None
     return pid
 
-def uid_of_sender(bus, sender):
-    """ Get user id from sender string using 
-    org.freedesktop.DBus.GetConnectionUnixUser """
 
-    dbus_obj = bus.get_object('org.freedesktop.DBus', '/org/freedesktop/DBus')
-    dbus_iface = dbus.Interface(dbus_obj, 'org.freedesktop.DBus')
+def uid_of_sender(bus, sender):
+    """Get user id from sender string using
+    org.freedesktop.DBus.GetConnectionUnixUser"""
+
+    dbus_obj = bus.get_object("org.freedesktop.DBus", "/org/freedesktop/DBus")
+    dbus_iface = dbus.Interface(dbus_obj, "org.freedesktop.DBus")
 
     try:
         uid = int(dbus_iface.GetConnectionUnixUser(sender))
@@ -66,8 +49,9 @@ def uid_of_sender(bus, sender):
         return None
     return uid
 
+
 def user_of_uid(uid):
-    """ Get user for uid from pwd """
+    """Get user for uid from pwd"""
 
     try:
         pws = pwd.getpwuid(uid)
@@ -75,27 +59,31 @@ def user_of_uid(uid):
         return None
     return pws[0]
 
-def context_of_sender(bus, sender):
-    """ Get SELinux context from sender string using 
-    org.freedesktop.DBus.GetConnectionSELinuxSecurityContext """
 
-    dbus_obj = bus.get_object('org.freedesktop.DBus', '/org/freedesktop/DBus')
-    dbus_iface = dbus.Interface(dbus_obj, 'org.freedesktop.DBus')
+def context_of_sender(bus, sender):
+    """Get SELinux context from sender string using
+    org.freedesktop.DBus.GetConnectionSELinuxSecurityContext"""
+
+    dbus_obj = bus.get_object("org.freedesktop.DBus", "/org/freedesktop/DBus")
+    dbus_iface = dbus.Interface(dbus_obj, "org.freedesktop.DBus")
 
     try:
-        context =  dbus_iface.GetConnectionSELinuxSecurityContext(sender)
+        context = dbus_iface.GetConnectionSELinuxSecurityContext(sender)
     except Exception:
         return None
 
     return "".join(map(chr, dbus_to_python(context)))
 
+
 def command_of_sender(bus, sender):
-    """ Return command of D-Bus sender """
+    """Return command of D-Bus sender"""
 
     return command_of_pid(pid_of_sender(bus, sender))
 
+
 def user_of_sender(bus, sender):
     return user_of_uid(uid_of_sender(bus, sender))
+
 
 def dbus_to_python(obj, expected_type=None):
     if obj is None:
@@ -106,13 +94,15 @@ def dbus_to_python(obj, expected_type=None):
         python_obj = str(obj)
     elif isinstance(obj, dbus.ObjectPath):
         python_obj = str(obj)
-    elif isinstance(obj, dbus.Byte) or \
-            isinstance(obj, dbus.Int16) or \
-            isinstance(obj, dbus.Int32) or \
-            isinstance(obj, dbus.Int64) or \
-            isinstance(obj, dbus.UInt16) or \
-            isinstance(obj, dbus.UInt32) or \
-            isinstance(obj, dbus.UInt64):
+    elif (
+        isinstance(obj, dbus.Byte)
+        or isinstance(obj, dbus.Int16)
+        or isinstance(obj, dbus.Int32)
+        or isinstance(obj, dbus.Int64)
+        or isinstance(obj, dbus.UInt16)
+        or isinstance(obj, dbus.UInt32)
+        or isinstance(obj, dbus.UInt64)
+    ):
         python_obj = int(obj)
     elif isinstance(obj, dbus.Double):
         python_obj = float(obj)
@@ -122,134 +112,173 @@ def dbus_to_python(obj, expected_type=None):
         python_obj = tuple([dbus_to_python(x) for x in obj])
     elif isinstance(obj, dbus.Dictionary):
         python_obj = {dbus_to_python(k): dbus_to_python(v) for k, v in obj.items()}
-    elif isinstance(obj, bool) or \
-         isinstance(obj, str) or isinstance(obj, bytes) or \
-         isinstance(obj, int) or isinstance(obj, float) or \
-         isinstance(obj, list) or isinstance(obj, tuple) or \
-         isinstance(obj, dict):
+    elif (
+        isinstance(obj, bool)
+        or isinstance(obj, str)
+        or isinstance(obj, bytes)
+        or isinstance(obj, int)
+        or isinstance(obj, float)
+        or isinstance(obj, list)
+        or isinstance(obj, tuple)
+        or isinstance(obj, dict)
+    ):
         python_obj = obj
     else:
         raise TypeError("Unhandled %s" % repr(obj))
 
-    if expected_type is not None:
-        if (expected_type == bool and not isinstance(python_obj, bool)) or \
-           (expected_type == str and not isinstance(python_obj, str)) or \
-           (expected_type == int and not isinstance(python_obj, int)) or \
-           (expected_type == float and not isinstance(python_obj, float)) or \
-           (expected_type == list and not isinstance(python_obj, list)) or \
-           (expected_type == tuple and not isinstance(python_obj, tuple)) or \
-           (expected_type == dict and not isinstance(python_obj, dict)):
-            raise TypeError("%s is %s, expected %s" % (python_obj, type(python_obj), expected_type))
+    if expected_type is None:
+        # no type validation requested.
+        pass
+    elif isinstance(python_obj, expected_type):
+        # we are good, the result has the requested type.
+        # for example, expected_type is "str"
+        pass
+    elif isinstance(obj, expected_type):
+        # we are also good. The expected_type might be something like
+        # dbus.ObjectPath, and the caller asserts that this is an "o"
+        # type. The result is of course just a plain "str" type.
+        #
+        # This allows to check that the type is for example a dbus.ObjectPath
+        # and not merely a string (which provides additional consistency
+        # guarantees, like not being empty and well-formed).
+        pass
+    else:
+        raise TypeError(
+            "%s is %s, expected %s" % (python_obj, type(python_obj), expected_type)
+        )
 
     return python_obj
 
+
+def dbus_to_python_args(dbus_args, *expected_types):
+    # Checks that dbus_args is a list of D-Bus arguments, of the expected type.
+    dbus_args = tuple(dbus_args)
+    if len(dbus_args) != len(expected_types):
+        # The number of arguments must match with the expected_types.
+        raise TypeError("Unexpected number of arguments")
+    return tuple(dbus_to_python(a, expected_types[i]) for i, a in enumerate(dbus_args))
+
+
 def dbus_signature(obj):
     if isinstance(obj, dbus.Boolean):
-        return 'b'
+        return "b"
     elif isinstance(obj, dbus.String):
-        return 's'
+        return "s"
     elif isinstance(obj, dbus.ObjectPath):
-        return 'o'
+        return "o"
     elif isinstance(obj, dbus.Byte):
-        return 'y'
+        return "y"
     elif isinstance(obj, dbus.Int16):
-        return 'n'
+        return "n"
     elif isinstance(obj, dbus.Int32):
-        return 'i'
+        return "i"
     elif isinstance(obj, dbus.Int64):
-        return 'x'
+        return "x"
     elif isinstance(obj, dbus.UInt16):
-        return 'q'
+        return "q"
     elif isinstance(obj, dbus.UInt32):
-        return 'u'
+        return "u"
     elif isinstance(obj, dbus.UInt64):
-        return 't'
+        return "t"
     elif isinstance(obj, dbus.Double):
-        return 'd'
+        return "d"
     elif isinstance(obj, dbus.Array):
         if len(obj.signature) > 1:
-            return 'a(%s)' % obj.signature
+            return "a(%s)" % obj.signature
         else:
-            return 'a%s' % obj.signature
+            return "a%s" % obj.signature
     elif isinstance(obj, dbus.Struct):
-        return '(%s)' % obj.signature
+        return "(%s)" % obj.signature
     elif isinstance(obj, dbus.Dictionary):
-        return 'a{%s}' % obj.signature
+        return "a{%s}" % obj.signature
     else:
         raise TypeError("Unhandled %s" % repr(obj))
 
+
 def dbus_introspection_prepare_properties(obj, interface, access=None):
     if access is None:
-        access = { }
+        access = {}
 
     if not hasattr(obj, "_fw_dbus_properties"):
-        setattr(obj, "_fw_dbus_properties", { })
+        setattr(obj, "_fw_dbus_properties", {})
     dip = getattr(obj, "_fw_dbus_properties")
-    dip[interface] = { }
+    dip[interface] = {}
 
     try:
         _dict = obj.GetAll(interface)
     except Exception:
-        _dict = { }
-    for key,value in _dict.items():
-        dip[interface][key] = { "type": dbus_signature(value) }
+        _dict = {}
+    for key, value in _dict.items():
+        dip[interface][key] = {"type": dbus_signature(value)}
         if key in access:
             dip[interface][key]["access"] = access[key]
         else:
             dip[interface][key]["access"] = "read"
 
+
 def dbus_introspection_add_properties(obj, data, interface):
-    doc = minidom.parseString(data)
+    modified = False
 
     if hasattr(obj, "_fw_dbus_properties"):
-        for node in doc.getElementsByTagName("interface"):
-            if node.hasAttribute("name") and \
-               node.getAttribute("name") == interface:
-                dip = { }
-                if getattr(obj, "_fw_dbus_properties"):
-                    dip = getattr(obj, "_fw_dbus_properties")
-                if interface in dip:
-                    for key,value in dip[interface].items():
-                        prop = doc.createElement("property")
-                        prop.setAttribute("name", key)
-                        prop.setAttribute("type", value["type"])
-                        prop.setAttribute("access", value["access"])
-                        node.appendChild(prop)
+        dip = getattr(obj, "_fw_dbus_properties")
+        if isinstance(dip, dict) and interface in dip:
+            doc = ET.fromstring(data)
+            for node in doc.iter("interface"):
+                if "name" in node.attrib and node.attrib["name"] == interface:
+                    for key, value in dip[interface].items():
+                        attrib = {
+                            "name": key,
+                            "type": value["type"],
+                            "access": value["access"],
+                        }
+                        ET.SubElement(node, "property", attrib)
+                        modified = True
 
-    log.debug10(doc.toxml())
-    new_data = doc.toxml()
-    doc.unlink()
-    return new_data
+    if modified:
+        data = ET.tostring(doc, encoding="unicode")
+        log.debug10(data)
 
-def dbus_introspection_add_deprecated(obj, data, interface, deprecated_methods, deprecated_signals):
-    doc = minidom.parseString(data)
+    return data
 
-    if interface in deprecated_methods:
-        for node in doc.getElementsByTagName("interface"):
-            if node.hasAttribute("name") and \
-               node.getAttribute("name") == interface:
-                for method_node in node.getElementsByTagName("method"):
-                    if method_node.hasAttribute("name") and \
-                       method_node.getAttribute("name") in deprecated_methods[interface]:
-                        annotation = doc.createElement("annotation")
-                        annotation.setAttribute("name", "org.freedesktop.DBus.Deprecated")
-                        annotation.setAttribute("value", "true")
-                        method_node.appendChild(annotation)
 
-    if interface in deprecated_signals:
-        for node in doc.getElementsByTagName("interface"):
-            if node.hasAttribute("name") and \
-               node.getAttribute("name") == interface:
-                for signal_node in node.getElementsByTagName("signal"):
-                    if signal_node.hasAttribute("name") and \
-                       signal_node.getAttribute("name") in deprecated_signals[interface]:
-                        annotation = doc.createElement("annotation")
-                        annotation.setAttribute("name", "org.freedesktop.DBus.Deprecated")
-                        annotation.setAttribute("value", "true")
-                        signal_node.appendChild(annotation)
+def dbus_introspection_add_deprecated(
+    obj, data, interface, deprecated_methods, deprecated_signals
+):
+    modified = False
+    is_deprecated_method = interface in deprecated_methods
+    is_deprecated_signal = interface in deprecated_signals
 
-    log.debug10(doc.toxml())
-    data = doc.toxml()
-    doc.unlink()
+    if is_deprecated_method or is_deprecated_signal:
+        attrib = {
+            "name": "org.freedesktop.DBus.Deprecated",
+            "value": "true",
+        }
+        doc = ET.fromstring(data)
+
+        for node in doc.iter("interface"):
+            if "name" in node.attrib and node.attrib["name"] == interface:
+                if is_deprecated_method:
+                    for method_node in node.iter("method"):
+                        if (
+                            "name" in method_node.attrib
+                            and method_node.attrib["name"]
+                            in deprecated_methods[interface]
+                        ):
+                            ET.SubElement(method_node, "annotation", attrib)
+                            modified = True
+
+                if is_deprecated_signal:
+                    for signal_node in node.iter("signal"):
+                        if (
+                            "name" in signal_node.attrib
+                            and signal_node.attrib["name"]
+                            in deprecated_signals[interface]
+                        ):
+                            ET.SubElement(signal_node, "annotation", attrib)
+                            modified = True
+
+        if modified:
+            data = ET.tostring(doc, encoding="unicode")
+            log.debug10(data)
 
     return data

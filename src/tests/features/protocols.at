@@ -22,24 +22,24 @@ FWD_CHECK([--policy=foobar --query-rich-rule='rule protocol value="sctp" accept'
 NFT_LIST_RULES([inet], [filter_IN_policy_foobar_allow], 0, [dnl
     table inet firewalld {
         chain filter_IN_policy_foobar_allow {
-            meta l4proto sctp ct state new,untracked accept
-            meta l4proto ipv6-icmp ct state new,untracked accept
-            meta l4proto dccp ct state new,untracked accept
-            meta l4proto gre ct state new,untracked accept
+            meta l4proto sctp accept
+            meta l4proto ipv6-icmp accept
+            meta l4proto dccp accept
+            meta l4proto gre accept
         }
     }
 ])
 IPTABLES_LIST_RULES([filter], [IN_foobar_allow], 0, [dnl
-    ACCEPT sctp -- 0.0.0.0/0 0.0.0.0/0 ctstate NEW,UNTRACKED
-    ACCEPT icmpv6-- 0.0.0.0/0 0.0.0.0/0 ctstate NEW,UNTRACKED
-    ACCEPT 33 -- 0.0.0.0/0 0.0.0.0/0 ctstate NEW,UNTRACKED
-    ACCEPT 47 -- 0.0.0.0/0 0.0.0.0/0 ctstate NEW,UNTRACKED
+    ACCEPT 132 -- 0.0.0.0/0 0.0.0.0/0
+    ACCEPT 58 -- 0.0.0.0/0 0.0.0.0/0
+    ACCEPT 33 -- 0.0.0.0/0 0.0.0.0/0
+    ACCEPT 47 -- 0.0.0.0/0 0.0.0.0/0
 ])
 IP6TABLES_LIST_RULES([filter], [IN_foobar_allow], 0, [dnl
-    ACCEPT sctp ::/0 ::/0 ctstate NEW,UNTRACKED
-    ACCEPT icmpv6 ::/0 ::/0 ctstate NEW,UNTRACKED
-    ACCEPT 33 ::/0 ::/0 ctstate NEW,UNTRACKED
-    ACCEPT 47 ::/0 ::/0 ctstate NEW,UNTRACKED
+    ACCEPT 132 -- ::/0 ::/0
+    ACCEPT 58 -- ::/0 ::/0
+    ACCEPT 33 -- ::/0 ::/0
+    ACCEPT 47 -- ::/0 ::/0
 ])
 FWD_CHECK([--permanent --policy=foobar --remove-protocol ipv6-icmp], 0, [ignore])
 FWD_CHECK([--permanent --policy foobar --query-protocol ipv6-icmp], 1, [ignore])
@@ -66,18 +66,18 @@ FWD_CHECK([--permanent --policy=foobar --query-rich-rule='rule protocol value="s
 NFT_LIST_RULES([inet], [filter_IN_policy_foobar_allow], 0, [dnl
     table inet firewalld {
         chain filter_IN_policy_foobar_allow {
-            meta l4proto ipv6-icmp ct state new,untracked accept
-            meta l4proto sctp ct state new,untracked accept
+            meta l4proto ipv6-icmp accept
+            meta l4proto sctp accept
         }
     }
 ])
 IPTABLES_LIST_RULES([filter], [IN_foobar_allow], 0, [dnl
-    ACCEPT icmpv6-- 0.0.0.0/0 0.0.0.0/0 ctstate NEW,UNTRACKED
-    ACCEPT sctp -- 0.0.0.0/0 0.0.0.0/0 ctstate NEW,UNTRACKED
+    ACCEPT 58 -- 0.0.0.0/0 0.0.0.0/0
+    ACCEPT 132 -- 0.0.0.0/0 0.0.0.0/0
 ])
 IP6TABLES_LIST_RULES([filter], [IN_foobar_allow], 0, [dnl
-    ACCEPT icmpv6 ::/0 ::/0 ctstate NEW,UNTRACKED
-    ACCEPT sctp ::/0 ::/0 ctstate NEW,UNTRACKED
+    ACCEPT 58 -- ::/0 ::/0
+    ACCEPT 132 -- ::/0 ::/0
 ])
 FWD_CHECK([--permanent --policy=foobar --remove-protocol ipv6-icmp], 0, [ignore])
 FWD_CHECK([--permanent --policy=foobar --remove-rich-rule='rule protocol value="sctp" accept'], 0, [ignore])

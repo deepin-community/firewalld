@@ -8,24 +8,14 @@
 ]>
 
 <!--
+  SPDX-License-Identifier: GPL-2.0-or-later
+
   This file is part of firewalld.
 
   Copyright (C) 2010-2014 Red Hat, Inc.
+
   Authors:
   Thomas Woerner <twoerner@redhat.com>
-
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -->
 
 <refentry id="firewall-cmd">
@@ -172,6 +162,14 @@
         <para>
           Run checks on the permanent configuration. This includes XML validity
           and semantics.
+        </para>
+      </listitem>
+    </varlistentry>
+    <varlistentry>
+      <term><option>--reset-to-defaults</option></term>
+      <listitem>
+        <para>
+          Reset configuration to firewalld's default configuration.
         </para>
       </listitem>
     </varlistentry>
@@ -523,7 +521,7 @@
       </varlistentry>
 
       <varlistentry>
-        <term><option>--permanent</option> <optional><option>--zone</option>=<replaceable>zone</replaceable></optional> <optional><option>--policy</option>=<replaceable>policy</replaceable></optional> <option>--set-target</option>=<replaceable>zone</replaceable></term>
+        <term><option>--permanent</option> <optional><option>--zone</option>=<replaceable>zone</replaceable></optional> <optional><option>--policy</option>=<replaceable>policy</replaceable></optional> <option>--set-target</option>=<replaceable>target</replaceable></term>
         <listitem>
           <para>
             Set the target.
@@ -898,6 +896,13 @@
 	    <para>
 	      <emphasis>Note:</emphasis> IP forwarding will be implicitly enabled.
 	    </para>
+            <para>
+              <emphasis>Note (Linux &lt; 5.5):</emphasis>
+                For the iptables backend, a policy may not enable masquerade if
+                an ingress zone has assigned interfaces. This restriction does
+                not exist for the nftables backend, but does require Linux v5.5+
+                to function properly; otherwise it will silently fail.
+            </para>
 	  </listitem>
 	</varlistentry>
 
@@ -1041,6 +1046,63 @@
           </para>
         </listitem>
       </varlistentry>
+
+      <!-- set/get priority -->
+      <varlistentry>
+        <term><option>--permanent</option> <optional><option>--zone</option>=<replaceable>zone</replaceable></optional> <option>--get-priority</option></term>
+        <listitem>
+          <para>
+	    Get the priority of the zone.
+          </para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><option>--permanent</option> <optional><option>--zone</option>=<replaceable>zone</replaceable></optional> <option>--set-priority</option></term>
+        <listitem>
+          <para>
+            Set the zone's priority for packet classification. This will set
+            both the ingress and egress priority.
+          </para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><option>--permanent</option> <optional><option>--zone</option>=<replaceable>zone</replaceable></optional> <option>--get-ingress-priority</option></term>
+        <listitem>
+          <para>
+	    Get the ingress priority of the zone.
+          </para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><option>--permanent</option> <optional><option>--zone</option>=<replaceable>zone</replaceable></optional> <option>--set-ingress-priority</option></term>
+        <listitem>
+          <para>
+            Set the zone's ingress priority for packet classification.
+          </para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><option>--permanent</option> <optional><option>--zone</option>=<replaceable>zone</replaceable></optional> <option>--get-egress-priority</option></term>
+        <listitem>
+          <para>
+	    Get the egress priority of the zone.
+          </para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><option>--permanent</option> <optional><option>--zone</option>=<replaceable>zone</replaceable></optional> <option>--set-egress-priority</option></term>
+        <listitem>
+          <para>
+            Set the zone's egress priority for packet classification.
+          </para>
+        </listitem>
+      </varlistentry>
+
       </variablelist>
     </refsect2>
 
@@ -1062,7 +1124,7 @@
       </varlistentry>
 
       <varlistentry>
-        <term><option>--permanent</option> <option>--policy</option>=<replaceable>policy</replaceable> <option>--set-priority</option><replaceable>priority</replaceable></term>
+        <term><option>--permanent</option> <option>--policy</option>=<replaceable>policy</replaceable> <option>--set-priority</option>=<replaceable>priority</replaceable></term>
         <listitem>
           <para>
             Set the priority. The priority determines the relative ordering of
@@ -1252,7 +1314,7 @@ For interfaces that are not under control of NetworkManager, firewalld tries to 
 	      If the interface is under control of NetworkManager, it is at first connected to change the zone for the connection that is using the interface. If this fails, the zone binding is created in firewalld and the limitations below apply.
 	    </para>
 	    <para>
-	      For the addion or change of interfaces that are not under control of NetworkManager: firewalld tries to change the ZONE setting in the ifcfg file, if an ifcfg file exists that is using the interface.
+	      For the addition or change of interfaces that are not under control of NetworkManager: firewalld tries to change the ZONE setting in the ifcfg file, if an ifcfg file exists that is using the interface.
 	    </para>
 	    <para>
 	      Only for the removal of interfaces that are not under control of NetworkManager: firewalld is not trying to change the ZONE setting in the ifcfg file. This is needed to make sure that an ifdown of the interface will not result in a reset of the zone setting to the default zone. Only the zone binding is then removed in firewalld then.
@@ -1631,7 +1693,7 @@ For interfaces that are not under control of NetworkManager, firewalld tries to 
          <term><option>--permanent</option> <option>--service</option>=<replaceable>service</replaceable> <option>--query-port</option>=<replaceable>portid</replaceable><optional>-<replaceable>portid</replaceable></optional>/<replaceable>protocol</replaceable></term>
          <listitem>
            <para>
-             Return wether the port has been added to the permanent service.
+             Return whether the port has been added to the permanent service.
            </para>
          </listitem>
        </varlistentry>
@@ -1664,7 +1726,7 @@ For interfaces that are not under control of NetworkManager, firewalld tries to 
          <term><option>--permanent</option> <option>--service</option>=<replaceable>service</replaceable> <option>--query-protocol</option>=<replaceable>protocol</replaceable></term>
          <listitem>
            <para>
-             Return wether the protocol has been added to the permanent service.
+             Return whether the protocol has been added to the permanent service.
            </para>
          </listitem>
        </varlistentry>
@@ -1697,7 +1759,7 @@ For interfaces that are not under control of NetworkManager, firewalld tries to 
          <term><option>--permanent</option> <option>--service</option>=<replaceable>service</replaceable> <option>--query-source-port</option>=<replaceable>portid</replaceable><optional>-<replaceable>portid</replaceable></optional>/<replaceable>protocol</replaceable></term>
          <listitem>
            <para>
-             Return wether the source port has been added to the permanent service.
+             Return whether the source port has been added to the permanent service.
            </para>
          </listitem>
        </varlistentry>
@@ -1730,7 +1792,7 @@ For interfaces that are not under control of NetworkManager, firewalld tries to 
          <term><option>--permanent</option> <option>--service</option>=<replaceable>service</replaceable> <option>--query-helper</option>=<replaceable>helper</replaceable></term>
          <listitem>
            <para>
-             Return wether the helper has been added to the permanent service.
+             Return whether the helper has been added to the permanent service.
            </para>
          </listitem>
        </varlistentry>
@@ -1763,7 +1825,7 @@ For interfaces that are not under control of NetworkManager, firewalld tries to 
          <term><option>--permanent</option> <option>--service</option>=<replaceable>service</replaceable> <option>--query-destination</option>=<replaceable>ipv</replaceable>:<replaceable>address</replaceable><optional>/<replaceable>mask</replaceable></optional></term>
          <listitem>
            <para>
-             Return wether the destination ipv to address[/mask] has been set in the permanent service.
+             Return whether the destination ipv to address[/mask] has been set in the permanent service.
            </para>
          </listitem>
        </varlistentry>
@@ -1796,7 +1858,7 @@ For interfaces that are not under control of NetworkManager, firewalld tries to 
          <term><option>--permanent</option> <option>--service</option>=<replaceable>service</replaceable> <option>--query-include</option>=<replaceable>service</replaceable></term>
          <listitem>
            <para>
-             Return wether the include has been added to the permanent service.
+             Return whether the include has been added to the permanent service.
            </para>
          </listitem>
        </varlistentry>
@@ -1921,7 +1983,7 @@ For interfaces that are not under control of NetworkManager, firewalld tries to 
            </para>
          </listitem>
        </varlistentry>
-       
+
        <varlistentry>
          <term><option>--permanent</option> <option>--helper</option>=<replaceable>helper</replaceable> <option>--add-port</option>=<replaceable>portid</replaceable><optional>-<replaceable>portid</replaceable></optional>/<replaceable>protocol</replaceable></term>
          <listitem>
@@ -1942,7 +2004,7 @@ For interfaces that are not under control of NetworkManager, firewalld tries to 
          <term><option>--permanent</option> <option>--helper</option>=<replaceable>helper</replaceable> <option>--query-port</option>=<replaceable>portid</replaceable><optional>-<replaceable>portid</replaceable></optional>/<replaceable>protocol</replaceable></term>
          <listitem>
            <para>
-             Return wether the port has been added to the permanent helper.
+             Return whether the port has been added to the permanent helper.
            </para>
          </listitem>
        </varlistentry>
@@ -2396,7 +2458,7 @@ For interfaces that are not under control of NetworkManager, firewalld tries to 
 	The context is the security (SELinux) context of a running application or service. To get the context of a running application use <command>ps -e --context</command>.
       </para>
       <para>
-	<emphasis role="bold">Warning:</emphasis> If the context is unconfined, then this will open access for more than the desired application. 
+	<emphasis role="bold">Warning:</emphasis> If the context is unconfined, then this will open access for more than the desired application.
       </para>
       <para>
 	The lockdown whitelist entries are checked in the following order:
@@ -2595,10 +2657,6 @@ For interfaces that are not under control of NetworkManager, firewalld tries to 
 
   <refsect1>
     <title>Examples</title>
-      <para>
-	For more examples see <ulink url="http://fedoraproject.org/wiki/FirewallD"></ulink>
-      </para>
-
     <refsect2>
       <title>Example 1</title>
       <para>

@@ -1,13 +1,13 @@
 '\" t
 .\"     Title: firewalld.dbus
 .\"    Author: Thomas Woerner <twoerner@redhat.com>
-.\" Generator: DocBook XSL Stylesheets vsnapshot <http://docbook.sf.net/>
+.\" Generator: DocBook XSL Stylesheets v1.79.1 <http://docbook.sf.net/>
 .\"      Date: 
 .\"    Manual: firewalld.dbus
-.\"    Source: firewalld 1.0.2
+.\"    Source: firewalld 2.1.2
 .\"  Language: English
 .\"
-.TH "FIREWALLD\&.DBUS" "5" "" "firewalld 1.0.2" "firewalld.dbus"
+.TH "FIREWALLD\&.DBUS" "5" "" "firewalld 2.1.2" "firewalld.dbus"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -111,6 +111,11 @@ Reload firewall completely, even netfilter kernel modules\&. This will most like
 .PP
 disablePanicMode() → Nothing
 .RS 4
+.PP
+resetToDefaults() → Nothing
+.RS 4
+Reset firewall to its default configuration, then reload firewall\&. This effects both runtime and permanent configuration\&.
+.RE
 Disable panic mode\&. After disabling panic mode established connections might work again, if panic mode was enabled for a short period of time\&.
 .sp
 Possible errors: NOT_ENABLED, COMMAND_FAILED
@@ -210,7 +215,7 @@ Possible errors: INVALID_ICMPTYPE
 .PP
 getLogDenied() → s
 .RS 4
-Retruns the LogDenied value\&. If LogDenied is enabled, then logging rules are added right before reject and drop rules in the INPUT, FORWARD and OUTPUT chains for the default rules and also final reject and drop rules in zones\&. Possible values are:
+Returns the LogDenied value\&. If LogDenied is enabled, then logging rules are added right before reject and drop rules in the INPUT, FORWARD and OUTPUT chains for the default rules and also final reject and drop rules in zones\&. Possible values are:
 \fIall\fR,
 \fIunicast\fR,
 \fIbroadcast\fR,
@@ -231,7 +236,7 @@ getServiceSettings2(s: \fIservice\fR) → s{sv}
 .RS 4
 Return runtime settings of given
 \fIservice\fR\&. For getting permanent settings see
-org\&.fedoraproject\&.FirewallD1\&.config\&.service\&.Methods\&.getSettings2\&. Settings are a dictionary indexed by keywords\&. For the type of each value see below\&. If the value is empty it may be ommitted\&.
+org\&.fedoraproject\&.FirewallD1\&.config\&.service\&.Methods\&.getSettings2\&. Settings are a dictionary indexed by keywords\&. For the type of each value see below\&. If the value is empty it may be omitted\&.
 .PP
 \fIversion (s)\fR: see \fIversion\fR attribute of \fIservice\fR tag in \fBfirewalld.service\fR(5)\&.
 .RS 4
@@ -466,7 +471,7 @@ firewalld version string\&.
 .RE
 .SS "org\&.fedoraproject\&.FirewallD1\&.ipset"
 .PP
-Operations in this interface allows to get, add, remove and query runtime ipset settings\&. For permanent configuration see
+Operations in this interface allows one to get, add, remove and query runtime ipset settings\&. For permanent configuration see
 org\&.fedoraproject\&.FirewallD1\&.config\&.ipset
 interface\&.
 .sp
@@ -499,7 +504,7 @@ org\&.fedoraproject\&.FirewallD1\&.config\&.ipset\&.Methods\&.getEntries\&.
 Possible errors: INVALID_IPSET, IPSET_WITH_TIMEOUT
 .RE
 .PP
-getSettings(s: ipset) → (ssssa{ss}as)
+getIPSetSettings(s: ipset) → (ssssa{ss}as)
 .RS 4
 Return runtime settings of given
 \fIipset\fR\&. For getting permanent settings see
@@ -1075,7 +1080,7 @@ being either
 .PP
 PassthroughAdded(s: ipv, as: args)
 .RS 4
-Emitted when a tracked passthruogh rule with
+Emitted when a tracked passthrough rule with
 \fIargs\fR
 has been added for
 \fIipv\fR
@@ -1403,7 +1408,7 @@ has been removed from whitelist\&.
 .RE
 .SS "org\&.fedoraproject\&.FirewallD1\&.zone"
 .PP
-Operations in this interface allows to get, add, remove and query runtime zone\*(Aqs settings\&. For permanent settings see
+Operations in this interface allows one to get, add, remove and query runtime zone\*(Aqs settings\&. For permanent settings see
 org\&.fedoraproject\&.FirewallD1\&.config\&.zone
 interface\&.
 .sp
@@ -1482,6 +1487,14 @@ org\&.fedoraproject\&.FirewallD1\&.config\&.zone\&.Methods\&.getSettings2\&. Set
 .RE
 .PP
 \fIforward (b)\fR: see \fIforward\fR tag in \fBfirewalld.zone\fR(5)\&.
+.RS 4
+.RE
+.PP
+\fIingress\-priority (i)\fR: see \fIingress\-priority\fR tag in \fBfirewalld.zone\fR(5)\&.
+.RS 4
+.RE
+.PP
+\fIegress\-priority (i)\fR: see \fIegress\-priority\fR tag in \fBfirewalld.zone\fR(5)\&.
 .RS 4
 .RE
 .sp
@@ -2451,7 +2464,7 @@ org\&.fedoraproject\&.FirewallD1\&.zone\&.Methods\&.setZoneSettings2
 .RE
 .SS "org\&.fedoraproject\&.FirewallD1\&.policy"
 .PP
-Operations in this interface allows to get, add, remove and query runtime policy settings\&. For permanent settings see
+Operations in this interface allows one to get, add, remove and query runtime policy settings\&. For permanent settings see
 org\&.fedoraproject\&.FirewallD1\&.config\&.policy
 interface\&.
 .sp
@@ -2520,7 +2533,7 @@ org\&.fedoraproject\&.FirewallD1\&.policy\&.Methods\&.setPolicySettings
 .RE
 .SS "org\&.fedoraproject\&.FirewallD1\&.config"
 .PP
-Allows to permanently add, remove and query zones, services and icmp types\&.
+Allows one to permanently add, remove and query zones, services and icmp types\&.
 .sp
 .it 1 an-trap
 .nr an-no-space-flag 1
@@ -2737,6 +2750,14 @@ into permanent configuration\&. Settings are a dictionary indexed by keywords\&.
 .RE
 .PP
 \fIforward (b)\fR: see \fIforward\fR tag in \fBfirewalld.zone\fR(5)\&.
+.RS 4
+.RE
+.PP
+\fIingress_priority (i)\fR: see \fIingress\-priority\fR tag in \fBfirewalld.zone\fR(5)\&.
+.RS 4
+.RE
+.PP
+\fIegress_priority (i)\fR: see \fIegress\-priority\fR tag in \fBfirewalld.zone\fR(5)\&.
 .RS 4
 .RE
 .sp
@@ -3096,6 +3117,16 @@ Deprecated\&. This option is ignored and no longer used\&. Marks are no longer u
 RFC3964_IPv4 \- s \- (rw)
 .RS 4
 As per RFC 3964, filter IPv6 traffic with 6to4 destination addresses that correspond to IPv4 addresses that should not be routed over the public internet\&. Valid options are; yes, no\&.
+.RE
+.PP
+NftablesFlowtable \- s \- (rw)
+.RS 4
+This may improve forwarded traffic throughput by enabling nftables flowtable\&. It is a software fastpath and avoids calling nftables rule evaluation for data packets\&. Its value is a space separate list of interfaces\&.
+.RE
+.PP
+NftablesCounters \- s \- (rw)
+.RS 4
+If set to yes, add a counter to every nftables rule\&. This is useful for debugging and comes with a small performance cost\&.
 .RE
 .RE
 .SS "org\&.fedoraproject\&.FirewallD1\&.config\&.direct"
@@ -3847,7 +3878,7 @@ tag in
 .PP
 getSettings() → (ssssa{ss}as)
 .RS 4
-Return permament settings of the ipset\&. For getting runtime settings see
+Return permanent settings of the ipset\&. For getting runtime settings see
 org\&.fedoraproject\&.FirewallD1\&.ipset\&.Methods\&.getIPSetSettings\&. Settings are in format:
 \fIversion\fR,
 \fIname\fR,
@@ -4450,6 +4481,14 @@ org\&.fedoraproject\&.FirewallD1\&.zone\&.Methods\&.getZoneSettings2\&. Settings
 \fIforward (b)\fR: see \fIforward\fR tag in \fBfirewalld.zone\fR(5)\&.
 .RS 4
 .RE
+.PP
+\fIingress_priority (i)\fR: see \fIingress\-priority\fR tag in \fBfirewalld.zone\fR(5)\&.
+.RS 4
+.RE
+.PP
+\fIegress_priority (i)\fR: see \fIegress\-priority\fR tag in \fBfirewalld.zone\fR(5)\&.
+.RS 4
+.RE
 .sp
 .RE
 .PP
@@ -4994,6 +5033,14 @@ Update settings of zone to
 \fIforward (b)\fR: see \fIforward\fR tag in \fBfirewalld.zone\fR(5)\&.
 .RS 4
 .RE
+.PP
+\fIingress_priority (i)\fR: see \fIingress\-priority\fR tag in \fBfirewalld.zone\fR(5)\&.
+.RS 4
+.RE
+.PP
+\fIegress_priority (i)\fR: see \fIegress\-priority\fR tag in \fBfirewalld.zone\fR(5)\&.
+.RS 4
+.RE
 .sp
 Possible errors: INVALID_TYPE
 .RE
@@ -5289,7 +5336,7 @@ getSettings2(s: \fIservice\fR) → s{sv}
 .RS 4
 Return runtime settings of given
 \fIservice\fR\&. For getting runtime settings see
-org\&.fedoraproject\&.FirewallD1\&.Methods\&.getServiceSettings2\&. Settings are a dictionary indexed by keywords\&. For the type of each value see below\&. If the value is empty it may be ommitted\&.
+org\&.fedoraproject\&.FirewallD1\&.Methods\&.getServiceSettings2\&. Settings are a dictionary indexed by keywords\&. For the type of each value see below\&. If the value is empty it may be omitted\&.
 .PP
 \fIversion (s)\fR: see \fIversion\fR attribute of \fIservice\fR tag in \fBfirewalld.service\fR(5)\&.
 .RS 4
@@ -6280,11 +6327,6 @@ Path to directory where the icmp type configuration is stored\&. Should be eithe
 firewalld home page:
 .RS 4
 \m[blue]\fB\%http://firewalld.org\fR\m[]
-.RE
-.PP
-More documentation with examples:
-.RS 4
-\m[blue]\fB\%http://fedoraproject.org/wiki/FirewallD\fR\m[]
 .RE
 .SH "AUTHORS"
 .PP
