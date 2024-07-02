@@ -1,3 +1,2 @@
 Remove-etc-sysconfig-firewalld-support.patch
 Switch-to-python3.patch
-Disable-integration-rhbz1928860.at-test.patch

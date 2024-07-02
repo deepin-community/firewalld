@@ -1,13 +1,13 @@
 '\" t
 .\"     Title: firewall-cmd
 .\"    Author: Thomas Woerner <twoerner@redhat.com>
-.\" Generator: DocBook XSL Stylesheets vsnapshot <http://docbook.sf.net/>
+.\" Generator: DocBook XSL Stylesheets v1.79.1 <http://docbook.sf.net/>
 .\"      Date: 
 .\"    Manual: firewall-cmd
-.\"    Source: firewalld 1.0.2
+.\"    Source: firewalld 2.1.2
 .\"  Language: English
 .\"
-.TH "FIREWALL\-CMD" "1" "" "firewalld 1.0.2" "firewall-cmd"
+.TH "FIREWALL\-CMD" "1" "" "firewalld 2.1.2" "firewall-cmd"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -103,6 +103,11 @@ Save active runtime configuration and overwrite permanent configuration with it\
 \fB\-\-check\-config\fR
 .RS 4
 Run checks on the permanent configuration\&. This includes XML validity and semantics\&.
+.RE
+.PP
+\fB\-\-reset\-to\-defaults\fR
+.RS 4
+Reset configuration to firewalld\*(Aqs default configuration\&.
 .RE
 .SS "Log Denied Options"
 .PP
@@ -359,7 +364,7 @@ List everything added or enabled\&.
 Get the target\&.
 .RE
 .PP
-\fB\-\-permanent\fR [\fB\-\-zone\fR=\fIzone\fR] [\fB\-\-policy\fR=\fIpolicy\fR] \fB\-\-set\-target\fR=\fIzone\fR
+\fB\-\-permanent\fR [\fB\-\-zone\fR=\fIzone\fR] [\fB\-\-policy\fR=\fIpolicy\fR] \fB\-\-set\-target\fR=\fItarget\fR
 .RS 4
 Set the target\&.
 .sp
@@ -749,6 +754,9 @@ masquerading, please use the rich language\&.
 .sp
 \fINote:\fR
 IP forwarding will be implicitly enabled\&.
+.sp
+\fINote (Linux < 5\&.5):\fR
+For the iptables backend, a policy may not enable masquerade if an ingress zone has assigned interfaces\&. This restriction does not exist for the nftables backend, but does require Linux v5\&.5+ to function properly; otherwise it will silently fail\&.
 .RE
 .PP
 [\fB\-\-permanent\fR] [\fB\-\-zone\fR=\fIzone\fR] [\fB\-\-permanent\fR] [\fB\-\-policy\fR=\fIpolicy\fR] \fB\-\-remove\-masquerade\fR
@@ -856,6 +864,36 @@ Disable intra zone forwarding\&.
 .RS 4
 Return whether intra zone forwarding is enabled\&. Returns 0 if true, 1 otherwise\&.
 .RE
+.PP
+\fB\-\-permanent\fR [\fB\-\-zone\fR=\fIzone\fR] \fB\-\-get\-priority\fR
+.RS 4
+Get the priority of the zone\&.
+.RE
+.PP
+\fB\-\-permanent\fR [\fB\-\-zone\fR=\fIzone\fR] \fB\-\-set\-priority\fR
+.RS 4
+Set the zone\*(Aqs priority for packet classification\&. This will set both the ingress and egress priority\&.
+.RE
+.PP
+\fB\-\-permanent\fR [\fB\-\-zone\fR=\fIzone\fR] \fB\-\-get\-ingress\-priority\fR
+.RS 4
+Get the ingress priority of the zone\&.
+.RE
+.PP
+\fB\-\-permanent\fR [\fB\-\-zone\fR=\fIzone\fR] \fB\-\-set\-ingress\-priority\fR
+.RS 4
+Set the zone\*(Aqs ingress priority for packet classification\&.
+.RE
+.PP
+\fB\-\-permanent\fR [\fB\-\-zone\fR=\fIzone\fR] \fB\-\-get\-egress\-priority\fR
+.RS 4
+Get the egress priority of the zone\&.
+.RE
+.PP
+\fB\-\-permanent\fR [\fB\-\-zone\fR=\fIzone\fR] \fB\-\-set\-egress\-priority\fR
+.RS 4
+Set the zone\*(Aqs egress priority for packet classification\&.
+.RE
 .SS "Options to Adapt and Query Policies"
 .PP
 Options in this section affect only one particular policy\&. It\*(Aqs required to specify
@@ -867,7 +905,7 @@ with these options\&.
 Get the priority\&.
 .RE
 .PP
-\fB\-\-permanent\fR \fB\-\-policy\fR=\fIpolicy\fR \fB\-\-set\-priority\fR\fIpriority\fR
+\fB\-\-permanent\fR \fB\-\-policy\fR=\fIpolicy\fR \fB\-\-set\-priority\fR=\fIpriority\fR
 .RS 4
 Set the priority\&. The priority determines the relative ordering of policies\&. This is an integer value between \-32768 and 32767 where \-1 is the default value for new policies and 0 is reserved for internal use\&.
 .sp
@@ -1008,7 +1046,7 @@ is bound to zone
 .RS 4
 If the interface is under control of NetworkManager, it is at first connected to change the zone for the connection that is using the interface\&. If this fails, the zone binding is created in firewalld and the limitations below apply\&.
 .sp
-For the addion or change of interfaces that are not under control of NetworkManager: firewalld tries to change the ZONE setting in the ifcfg file, if an ifcfg file exists that is using the interface\&.
+For the addition or change of interfaces that are not under control of NetworkManager: firewalld tries to change the ZONE setting in the ifcfg file, if an ifcfg file exists that is using the interface\&.
 .sp
 Only for the removal of interfaces that are not under control of NetworkManager: firewalld is not trying to change the ZONE setting in the ifcfg file\&. This is needed to make sure that an ifdown of the interface will not result in a reset of the zone setting to the default zone\&. Only the zone binding is then removed in firewalld then\&.
 .sp
@@ -1277,7 +1315,7 @@ Remove a port from the permanent service\&.
 .PP
 \fB\-\-permanent\fR \fB\-\-service\fR=\fIservice\fR \fB\-\-query\-port\fR=\fIportid\fR[\-\fIportid\fR]/\fIprotocol\fR
 .RS 4
-Return wether the port has been added to the permanent service\&.
+Return whether the port has been added to the permanent service\&.
 .RE
 .PP
 \fB\-\-permanent\fR \fB\-\-service\fR=\fIservice\fR \fB\-\-get\-ports\fR
@@ -1297,7 +1335,7 @@ Remove a protocol from the permanent service\&.
 .PP
 \fB\-\-permanent\fR \fB\-\-service\fR=\fIservice\fR \fB\-\-query\-protocol\fR=\fIprotocol\fR
 .RS 4
-Return wether the protocol has been added to the permanent service\&.
+Return whether the protocol has been added to the permanent service\&.
 .RE
 .PP
 \fB\-\-permanent\fR \fB\-\-service\fR=\fIservice\fR \fB\-\-get\-protocols\fR
@@ -1317,7 +1355,7 @@ Remove a source port from the permanent service\&.
 .PP
 \fB\-\-permanent\fR \fB\-\-service\fR=\fIservice\fR \fB\-\-query\-source\-port\fR=\fIportid\fR[\-\fIportid\fR]/\fIprotocol\fR
 .RS 4
-Return wether the source port has been added to the permanent service\&.
+Return whether the source port has been added to the permanent service\&.
 .RE
 .PP
 \fB\-\-permanent\fR \fB\-\-service\fR=\fIservice\fR \fB\-\-get\-source\-ports\fR
@@ -1337,7 +1375,7 @@ Remove a helper from the permanent service\&.
 .PP
 \fB\-\-permanent\fR \fB\-\-service\fR=\fIservice\fR \fB\-\-query\-helper\fR=\fIhelper\fR
 .RS 4
-Return wether the helper has been added to the permanent service\&.
+Return whether the helper has been added to the permanent service\&.
 .RE
 .PP
 \fB\-\-permanent\fR \fB\-\-service\fR=\fIservice\fR \fB\-\-get\-service\-helpers\fR
@@ -1357,7 +1395,7 @@ Remove the destination for ipv from the permanent service\&.
 .PP
 \fB\-\-permanent\fR \fB\-\-service\fR=\fIservice\fR \fB\-\-query\-destination\fR=\fIipv\fR:\fIaddress\fR[/\fImask\fR]
 .RS 4
-Return wether the destination ipv to address[/mask] has been set in the permanent service\&.
+Return whether the destination ipv to address[/mask] has been set in the permanent service\&.
 .RE
 .PP
 \fB\-\-permanent\fR \fB\-\-service\fR=\fIservice\fR \fB\-\-get\-destinations\fR
@@ -1377,7 +1415,7 @@ Remove a include from the permanent service\&.
 .PP
 \fB\-\-permanent\fR \fB\-\-service\fR=\fIservice\fR \fB\-\-query\-include\fR=\fIservice\fR
 .RS 4
-Return wether the include has been added to the permanent service\&.
+Return whether the include has been added to the permanent service\&.
 .RE
 .PP
 \fB\-\-permanent\fR \fB\-\-service\fR=\fIservice\fR \fB\-\-get\-includes\fR
@@ -1475,7 +1513,7 @@ Remove a port from the permanent helper\&.
 .PP
 \fB\-\-permanent\fR \fB\-\-helper\fR=\fIhelper\fR \fB\-\-query\-port\fR=\fIportid\fR[\-\fIportid\fR]/\fIprotocol\fR
 .RS 4
-Return wether the port has been added to the permanent helper\&.
+Return whether the port has been added to the permanent helper\&.
 .RE
 .PP
 \fB\-\-permanent\fR \fB\-\-helper\fR=\fIhelper\fR \fB\-\-get\-ports\fR
@@ -1999,9 +2037,6 @@ This is a runtime only change\&.
 Returns 0 if panic mode is enabled, 1 otherwise\&.
 .RE
 .SH "EXAMPLES"
-.PP
-For more examples see
-\m[blue]\fB\%http://fedoraproject.org/wiki/FirewallD\fR\m[]
 .SS "Example 1"
 .PP
 Enable http service in default zone\&. This is runtime only change, i\&.e\&. effective until restart\&.
@@ -2045,6 +2080,9 @@ T}:T{
 Code
 T}
 .T&
+l r
+l r
+l r
 l r
 l r
 l r
@@ -2472,6 +2510,21 @@ T}:T{
 140
 T}
 T{
+INVALID_LOG_PREFIX
+T}:T{
+141
+T}
+T{
+INVALID_NFLOG_GROUP
+T}:T{
+142
+T}
+T{
+INVALID_NFLOG_QUEUE
+T}:T{
+143
+T}
+T{
 MISSING_TABLE
 T}:T{
 200
@@ -2544,11 +2597,6 @@ options are special: Successful queries return 0, unsuccessful ones return 1 unl
 firewalld home page:
 .RS 4
 \m[blue]\fB\%http://firewalld.org\fR\m[]
-.RE
-.PP
-More documentation with examples:
-.RS 4
-\m[blue]\fB\%http://fedoraproject.org/wiki/FirewallD\fR\m[]
 .RE
 .SH "AUTHORS"
 .PP

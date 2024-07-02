@@ -7,24 +7,14 @@
 ]>
 
 <!--
+  SPDX-License-Identifier: GPL-2.0-or-later
+
   This file is part of firewalld.
 
   Copyright (C) 2010-2013 Red Hat, Inc.
+
   Authors:
   Thomas Woerner <twoerner@redhat.com>
-
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -->
 
 <refentry id="firewalld">
@@ -71,7 +61,7 @@
         <term><option>--help</option></term>
         <listitem>
 	  <para>
-	    Prints a short help text and exists.
+	    Prints a short help text and exits.
 	  </para>
 	</listitem>
       </varlistentry>
@@ -90,7 +80,7 @@
         <term><option>--debug</option><optional>=<replaceable>level</replaceable></optional></term>
         <listitem>
 	  <para>
-	    Set the debug level for firewalld to <replaceable>level</replaceable>. The range of the debug level is 1 (lowest level) to 10 (highest level). The debug output will be written to the firewalld log file <filename class="directory">/var/log/firewalld</filename>.
+	    Set the debug level for firewalld to <replaceable>level</replaceable>. The range of the debug level is 1 (lowest level) to 10 (highest level). The debug output will be written to the firewalld log file specified by --log-file.
 	  </para>
 	</listitem>
       </varlistentry>
@@ -102,6 +92,28 @@
 	    Print garbage collector leak information. The collector runs every 10 seconds and if there are leaks, it prints information about the leaks.
 	  </para>
 	</listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term>
+          <option>--log-target</option>
+        </term>
+        <listitem>
+          <para>
+            Define the output target to which log messages are written. In mixed mode, Firewalld writes info-level log messages to syslog. Debug messages are written to a file (see the --log-file parameter). Info messages also go to stdout and stderr. The syslog, file or console modes write all messages to the one configured target only.
+          </para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term>
+          <option>--log-file</option>
+        </term>
+        <listitem>
+          <para>
+            Define the file where debug messages are written to. The default file is <filename class="directory">/var/log/firewalld</filename>.
+          </para>
+        </listitem>
       </varlistentry>
 
       <varlistentry>

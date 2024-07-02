@@ -3,14 +3,14 @@
 export PYTHON=/usr/bin/python3
 
 %:
-	dh $@ --with python3
+	dh $@
 
 override_dh_autoreconf:
 	NOCONFIGURE=true dh_autoreconf ./autogen.sh
 
 override_dh_auto_configure:
 	dh_auto_configure -- \
-		--with-systemd-unitdir=/lib/systemd/system \
+		--with-systemd-unitdir=/usr/lib/systemd/system \
 		--with-bashcompletiondir=/usr/share/bash-completion/completions/ \
 		--with-zshcompletiondir=/usr/share/zsh/vendor-completions/ \
 		--with-iptables=/usr/sbin/iptables \
@@ -24,13 +24,11 @@ override_dh_auto_configure:
 		RMMOD=/sbin/rmmod \
 		SYSCTL=/sbin/sysctl
 
-override_dh_install:
+execute_before_dh_install:
 	# Delete the symlink and let update-alternatives handle it
 	rm -f debian/tmp/usr/share/polkit-1/actions/org.fedoraproject.FirewallD1.policy
-	dh_install
 
-override_dh_fixperms:
-	dh_fixperms
+execute_after_dh_fixperms:
 	chmod 0750 debian/firewalld/etc/firewalld/
 
 override_dh_auto_test:

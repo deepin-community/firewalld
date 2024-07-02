@@ -7,24 +7,14 @@
 ]>
 
 <!--
+  SPDX-License-Identifier: GPL-2.0-or-later
+
   This file is part of firewalld.
 
   Copyright (C) 2010-2013 Red Hat, Inc.
+
   Authors:
   Thomas Woerner <twoerner@redhat.com>
-
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -->
 
 <refentry id="firewalld.conf">
@@ -141,7 +131,7 @@
 	<term><option>IndividualCalls</option></term>
         <listitem>
 	  <para>
-	    If this option is disabled (it is by default), combined -restore calls are used and not individual calls to apply changes to the firewall. The use of individiual calls increases the time that is needed to apply changes and to start the daemon, but is good for debugging as error messages are more specific.
+	    If this option is disabled (it is by default), combined -restore calls are used and not individual calls to apply changes to the firewall. The use of individual calls increases the time that is needed to apply changes and to start the daemon, but is good for debugging as error messages are more specific.
 	  </para>
 	</listitem>
       </varlistentry>
@@ -196,6 +186,22 @@
         </varlistentry>
 
         <varlistentry>
+            <term><option>ReloadPolicy</option></term>
+            <listitem>
+                <para>
+                    The policy during reload. By default, all traffic except
+                    established connections is dropped while reloading the
+                    firewall rules. This can be overridden for INPUT, FORWARD
+                    and OUTPUT. The accepted values are "DROP", "REJECT" and
+                    "ACCEPT", which then applies to all tables. Alternatively,
+                    the policy can be specified per table, like
+                    "INPUT:REJECT,FORWARD:DROP,OUTPUT:ACCEPT".
+                    Defaults to "INPUT:DROP,FORWARD:DROP,OUTPUT:DROP".
+                </para>
+            </listitem>
+        </varlistentry>
+
+        <varlistentry>
             <term><option>RFC3964_IPv4</option></term>
             <listitem>
                 <para>
@@ -212,6 +218,31 @@
             <listitem>
                 <para>
                   Deprecated. This option is ignored and no longer used.
+                </para>
+            </listitem>
+        </varlistentry>
+
+        <varlistentry>
+            <term><option>NftablesFlowtable</option></term>
+            <listitem>
+                <para>
+                  This may improve forwarded traffic throughput by enabling
+                  nftables flowtable. It is a software fastpath and avoids
+                  calling nftables rule evaluation for data packets. Its
+                  value is a space separate list of interfaces.
+                  Example value "eth0 eth1".
+                  Defaults to "off".
+                </para>
+            </listitem>
+        </varlistentry>
+
+        <varlistentry>
+            <term><option>NftablesCounters</option></term>
+            <listitem>
+                <para>
+                  If set to yes, add a counter to every nftables rule. This is
+                  useful for debugging and comes with a small performance cost.
+                  Defaults to "no".
                 </para>
             </listitem>
         </varlistentry>

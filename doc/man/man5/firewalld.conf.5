@@ -1,13 +1,13 @@
 '\" t
 .\"     Title: firewalld.conf
 .\"    Author: Thomas Woerner <twoerner@redhat.com>
-.\" Generator: DocBook XSL Stylesheets vsnapshot <http://docbook.sf.net/>
+.\" Generator: DocBook XSL Stylesheets v1.79.1 <http://docbook.sf.net/>
 .\"      Date: 
 .\"    Manual: firewalld.conf
-.\"    Source: firewalld 1.0.2
+.\"    Source: firewalld 2.1.2
 .\"  Language: English
 .\"
-.TH "FIREWALLD\&.CONF" "5" "" "firewalld 1.0.2" "firewalld.conf"
+.TH "FIREWALLD\&.CONF" "5" "" "firewalld 2.1.2" "firewalld.conf"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -78,7 +78,7 @@ If this option is enabled (it is by default), reverse path filter test on a pack
 .PP
 \fBIndividualCalls\fR
 .RS 4
-If this option is disabled (it is by default), combined \-restore calls are used and not individual calls to apply changes to the firewall\&. The use of individiual calls increases the time that is needed to apply changes and to start the daemon, but is good for debugging as error messages are more specific\&.
+If this option is disabled (it is by default), combined \-restore calls are used and not individual calls to apply changes to the firewall\&. The use of individual calls increases the time that is needed to apply changes and to start the daemon, but is good for debugging as error messages are more specific\&.
 .RE
 .PP
 \fBLogDenied\fR
@@ -113,6 +113,11 @@ Selects the firewall backend implementation\&. Possible values are;
 Flush all runtime rules on a reload\&. In previous releases some runtime configuration was retained during a reload, namely; interface to zone assignment, and direct rules\&. This was confusing to users\&. To get the old behavior set this to "no"\&. Defaults to "yes"\&.
 .RE
 .PP
+\fBReloadPolicy\fR
+.RS 4
+The policy during reload\&. By default, all traffic except established connections is dropped while reloading the firewall rules\&. This can be overridden for INPUT, FORWARD and OUTPUT\&. The accepted values are "DROP", "REJECT" and "ACCEPT", which then applies to all tables\&. Alternatively, the policy can be specified per table, like "INPUT:REJECT,FORWARD:DROP,OUTPUT:ACCEPT"\&. Defaults to "INPUT:DROP,FORWARD:DROP,OUTPUT:DROP"\&.
+.RE
+.PP
 \fBRFC3964_IPv4\fR
 .RS 4
 As per RFC 3964, filter IPv6 traffic with 6to4 destination addresses that correspond to IPv4 addresses that should not be routed over the public internet\&. Defaults to "yes"\&.
@@ -122,6 +127,16 @@ As per RFC 3964, filter IPv6 traffic with 6to4 destination addresses that corres
 .RS 4
 Deprecated\&. This option is ignored and no longer used\&.
 .RE
+.PP
+\fBNftablesFlowtable\fR
+.RS 4
+This may improve forwarded traffic throughput by enabling nftables flowtable\&. It is a software fastpath and avoids calling nftables rule evaluation for data packets\&. Its value is a space separate list of interfaces\&. Example value "eth0 eth1"\&. Defaults to "off"\&.
+.RE
+.PP
+\fBNftablesCounters\fR
+.RS 4
+If set to yes, add a counter to every nftables rule\&. This is useful for debugging and comes with a small performance cost\&. Defaults to "no"\&.
+.RE
 .SH "SEE ALSO"
 \fBfirewall-applet\fR(1), \fBfirewalld\fR(1), \fBfirewall-cmd\fR(1), \fBfirewall-config\fR(1), \fBfirewalld.conf\fR(5), \fBfirewalld.direct\fR(5), \fBfirewalld.dbus\fR(5), \fBfirewalld.icmptype\fR(5), \fBfirewalld.lockdown-whitelist\fR(5), \fBfirewall-offline-cmd\fR(1), \fBfirewalld.richlanguage\fR(5), \fBfirewalld.service\fR(5), \fBfirewalld.zone\fR(5), \fBfirewalld.zones\fR(5), \fBfirewalld.policy\fR(5), \fBfirewalld.policies\fR(5), \fBfirewalld.ipset\fR(5), \fBfirewalld.helper\fR(5)
 .SH "NOTES"
@@ -129,11 +144,6 @@ Deprecated\&. This option is ignored and no longer used\&.
 firewalld home page:
 .RS 4
 \m[blue]\fB\%http://firewalld.org\fR\m[]
-.RE
-.PP
-More documentation with examples:
-.RS 4
-\m[blue]\fB\%http://fedoraproject.org/wiki/FirewallD\fR\m[]
 .RE
 .SH "AUTHORS"
 .PP

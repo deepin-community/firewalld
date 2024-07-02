@@ -1,13 +1,13 @@
 '\" t
 .\"     Title: firewalld.policy
 .\"    Author: Thomas Woerner <twoerner@redhat.com>
-.\" Generator: DocBook XSL Stylesheets vsnapshot <http://docbook.sf.net/>
+.\" Generator: DocBook XSL Stylesheets v1.79.1 <http://docbook.sf.net/>
 .\"      Date: 
 .\"    Manual: firewalld.policy
-.\"    Source: firewalld 1.0.2
+.\"    Source: firewalld 2.1.2
 .\"  Language: English
 .\"
-.TH "FIREWALLD\&.POLICY" "5" "" "firewalld 1.0.2" "firewalld.policy"
+.TH "FIREWALLD\&.POLICY" "5" "" "firewalld 2.1.2" "firewalld.policy"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -66,9 +66,9 @@ This is the structure of a policy configuration file:
     [ <forward\-port port="\fIportid\fR[\-\fIportid\fR]" protocol="\fItcp\fR|\fIudp\fR|\fIsctp\fR|\fIdccp\fR" [to\-port="\fIportid\fR[\-\fIportid\fR]"] [to\-addr="\fIIP address\fR"]/> ]
     [ <source\-port port="\fIportid\fR[\-\fIportid\fR]" protocol="\fItcp\fR|\fIudp\fR|\fIsctp\fR|\fIdccp\fR"/> ]
     [
-        <rule [family="\fIipv4\fR|\fIipv6\fR"]>
+        <rule [family="\fIipv4\fR|\fIipv6\fR"] [priority="\fIpriority\fR"]>
             [ <source address="\fIaddress\fR[/\fImask\fR]"|mac="\fIMAC\fR"|ipset="\fIipset\fR" [invert="\fITrue\fR"]/> ]
-            [ <destination address="\fIaddress\fR[/\fImask\fR]" [invert="\fITrue\fR"]/> ]
+            [ <destination address="\fIaddress\fR[/\fImask\fR]"|ipset="\fIipset\fR" [invert="\fITrue\fR"]/> ]
             [
                 <service name="\fIstring\fR"/> |
                 <port port="\fIportid\fR[\-\fIportid\fR]" protocol="\fItcp\fR|\fIudp\fR|\fIsctp\fR|\fIdccp\fR"/> |
@@ -78,7 +78,10 @@ This is the structure of a policy configuration file:
                 <masquerade/> |
                 <forward\-port port="\fIportid\fR[\-\fIportid\fR]" protocol="\fItcp\fR|\fIudp\fR|\fIsctp\fR|\fIdccp\fR" [to\-port="\fIportid\fR[\-\fIportid\fR]"] [to\-addr="\fIaddress\fR"]/>
             ]
-            [ <log [prefix="\fIprefixtext\fR"] [level="\fIemerg\fR|\fIalert\fR|\fIcrit\fR|\fIerr\fR|\fIwarn\fR|\fInotice\fR|\fIinfo\fR|\fIdebug\fR"]> [<limit value="\fIrate\fR/\fIduration\fR"/>] </log> ]
+            [
+                <log [prefix="\fIprefix text\fR"] [level="\fIemerg\fR|\fIalert\fR|\fIcrit\fR|\fIerr\fR|\fIwarn\fR|\fInotice\fR|\fIinfo\fR|\fIdebug\fR"]> [<limit value="\fIrate\fR/\fIduration\fR"/>] </log> |
+                <nflog [group="\fIgroup id\fR"] [prefix="\fIprefix text\fR"] [queue\-size="\fIthreshold\fR"]> [<limit value="\fIrate\fR/\fIduration\fR"/>] </nflog>
+            ]
             [ <audit> [<limit value="\fIrate\fR/\fIduration\fR"/>] </audit> ]
             [
                 <accept> [<limit value="\fIrate\fR/\fIduration\fR"/>] </accept> |
@@ -180,14 +183,6 @@ The name of the Internet Control Message Protocol (ICMP) type to be blocked\&. T
 \fBfirewall\-cmd \-\-get\-icmptypes\fR
 can be used\&.
 .RE
-.SS "tcp\-mss\-clamp"
-.PP
-Is an optional empty\-element tag and can be used several times\&. If left empty maximum segment size is set to \*(Aqpmtu\*(Aq\&. This tag has exactly one optional attribute:
-.PP
-value="\fIstring\fR"
-.RS 4
-Value can set maximum segment size to \*(Aqpmtu\*(Aq (Path Maximum Transmission Unit) or a user\-defined value that is greater than or equal to 536\&.
-.RE
 .SS "masquerade"
 .PP
 Is an optional empty\-element tag\&. It can be used only once\&. If it\*(Aqs present masquerading is enabled\&.
@@ -281,9 +276,9 @@ The general rule structure:
 .RS 4
 .\}
 .nf
-<rule [family="\fIipv4\fR|\fIipv6\fR"]>
-    [ <source address="\fIaddress\fR[/\fImask\fR]" [invert="\fITrue\fR"]/> ]
-    [ <destination address="\fIaddress\fR[/\fImask\fR]" [invert="\fITrue\fR"]/> ]
+<rule [family="\fIipv4\fR|\fIipv6\fR"] [priority="\fIpriority\fR"]>
+    [ <source address="\fIaddress\fR[/\fImask\fR]"|mac="\fIMAC\fR"|ipset="\fIipset\fR" [invert="\fITrue\fR"]/> ]
+    [ <destination address="\fIaddress\fR[/\fImask\fR]"|ipset="\fIipset\fR" [invert="\fITrue\fR"]/> ]
     [
         <service name="\fIstring\fR"/> |
         <port port="\fIportid\fR[\-\fIportid\fR]" protocol="\fItcp\fR|\fIudp\fR|\fIsctp\fR|\fIdccp\fR"/> |
@@ -294,7 +289,10 @@ The general rule structure:
         <forward\-port port="\fIportid\fR[\-\fIportid\fR]" protocol="\fItcp\fR|\fIudp\fR|\fIsctp\fR|\fIdccp\fR" [to\-port="\fIportid\fR[\-\fIportid\fR]"] [to\-addr="\fIaddress\fR"]/> |
         <source\-port port="\fIportid\fR[\-\fIportid\fR]" protocol="\fItcp\fR|\fIudp\fR|\fIsctp\fR|\fIdccp\fR"/> |
     ]
-    [ <log [prefix="\fIprefixtext\fR"] [level="\fIemerg\fR|\fIalert\fR|\fIcrit\fR|\fIerr\fR|\fIwarn\fR|\fInotice\fR|\fIinfo\fR|\fIdebug\fR"]/> [<limit value="\fIrate\fR/\fIduration\fR"/>] </log> ]
+    [
+        <log [prefix="\fIprefix text\fR"] [level="\fIemerg\fR|\fIalert\fR|\fIcrit\fR|\fIerr\fR|\fIwarn\fR|\fInotice\fR|\fIinfo\fR|\fIdebug\fR"]> [<limit value="\fIrate\fR/\fIduration\fR"/>] </log> |
+        <nflog [group="\fIgroup id\fR"] [prefix="\fIprefix text\fR"] [queue\-size="\fIthreshold\fR"]> [<limit value="\fIrate\fR/\fIduration\fR"/>] </nflog>
+    ]
     [ <audit> [<limit value="\fIrate\fR/\fIduration\fR"/>] </audit> ]
     [
         <accept> [<limit value="\fIrate\fR/\fIduration\fR"/>] </accept> |
@@ -315,9 +313,12 @@ Rule structure for source black or white listing:
 .RS 4
 .\}
 .nf
-<rule [family="\fIipv4\fR|\fIipv6\fR"]>
-    <source address="\fIaddress\fR[/\fImask\fR]" [invert="\fITrue\fR"]/>
-    [ <log [prefix="\fIprefixtext\fR"] [level="\fIemerg\fR|\fIalert\fR|\fIcrit\fR|\fIerr\fR|\fIwarn\fR|\fInotice\fR|\fIinfo\fR|\fIdebug\fR"]/> [<limit value="\fIrate\fR/\fIduration\fR"/>] </log> ]
+<rule [family="\fIipv4\fR|\fIipv6\fR"] [priority="\fIpriority\fR"]>
+    <source address="\fIaddress\fR[/\fImask\fR]"|mac="\fIMAC\fR"|ipset="\fIipset\fR" [invert="\fITrue\fR"]/>
+    [
+        <log [prefix="\fIprefix text\fR"] [level="\fIemerg\fR|\fIalert\fR|\fIcrit\fR|\fIerr\fR|\fIwarn\fR|\fInotice\fR|\fIinfo\fR|\fIdebug\fR"]> [<limit value="\fIrate\fR/\fIduration\fR"/>] </log> |
+        <nflog [group="\fIgroup id\fR"] [prefix="\fIprefix text\fR"] [queue\-size="\fIthreshold\fR"]> [<limit value="\fIrate\fR/\fIduration\fR"/>] </nflog>
+    ]
     [ <audit> [<limit value="\fIrate\fR/\fIduration\fR"/>] </audit> ]
     <accept> [<limit value="\fIrate\fR/\fIduration\fR"/>] </accept> |
     <reject [type="\fIrejecttype\fR"]> [<limit value="\fIrate\fR/\fIduration\fR"/>] </reject> |
@@ -338,11 +339,6 @@ For a full description on rich language rules, please have a look at
 firewalld home page:
 .RS 4
 \m[blue]\fB\%http://firewalld.org\fR\m[]
-.RE
-.PP
-More documentation with examples:
-.RS 4
-\m[blue]\fB\%http://fedoraproject.org/wiki/FirewallD\fR\m[]
 .RE
 .SH "AUTHORS"
 .PP

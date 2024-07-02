@@ -7,24 +7,14 @@
 ]>
 
 <!--
+  SPDX-License-Identifier: GPL-2.0-or-later
+
   This file is part of firewalld.
 
   Copyright (C) 2010-2013 Red Hat, Inc.
+
   Authors:
   Thomas Woerner <twoerner@redhat.com>
-
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -->
 
 <refentry id="firewalld.direct">
@@ -72,7 +62,7 @@
     </para>
 
     <para>
-      A firewalld direct configuration file contains informations about permanent direct chains, rules and passthrough ...
+      A firewalld direct configuration file contains information about permanent direct chains, rules and passthrough ...
     </para>
 
     <para>
@@ -283,7 +273,7 @@
 
     <para>
       Denylisting of the networks 192.168.1.0/24 and 192.168.5.0/24 with logging and dropping early in the raw table:
-      
+
       <programlisting>
 &lt;?xml version="1.0" encoding="utf-8"?&gt;
 &lt;direct&gt;
@@ -294,7 +284,7 @@
   &lt;rule ipv="ipv4" table="raw" chain="denylist" priority="1"&gt;-j DROP&lt;/rule&gt;
 &lt;/direct&gt;
       </programlisting>
-      
+
     </para>
   </refsect1>
 

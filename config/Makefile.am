@@ -28,6 +28,14 @@ dist_dbus_policy_DATA = FirewallD.conf
 gsettings_in_file = org.fedoraproject.FirewallConfig.gschema.xml.in
 gsettings_SCHEMAS = $(gsettings_in_file:.xml.in=.xml)
 
+xmlschemadir = $(prefixlibdir)/xmlschema
+dist_xmlschema_DATA = \
+	xmlschema/icmptype.xsd \
+	xmlschema/ipset.xsd \
+	xmlschema/service.xsd \
+	xmlschema/zone.xsd
+dist_xmlschema_SCRIPTS = xmlschema/check.sh
+
 BUILT_SOURCES = \
 	$(desktop_DATA) \
 	$(appdata_DATA) \
@@ -83,6 +91,10 @@ CONFIG_FILES = \
 	icmptypes/host-unknown.xml \
 	icmptypes/host-unreachable.xml \
 	icmptypes/ip-header-bad.xml \
+	icmptypes/mld-listener-done.xml \
+	icmptypes/mld-listener-query.xml \
+	icmptypes/mld-listener-report.xml \
+	icmptypes/mld2-listener-report.xml \
 	icmptypes/neighbour-advertisement.xml \
 	icmptypes/neighbour-solicitation.xml \
 	icmptypes/network-prohibited.xml \
@@ -113,16 +125,25 @@ CONFIG_FILES = \
 	icmptypes/ttl-zero-during-transit.xml \
 	icmptypes/unknown-header-type.xml \
 	icmptypes/unknown-option.xml \
-	ipsets/README \
+	ipsets/README.md \
 	policies/allow-host-ipv6.xml \
+	services/0-AD.xml \
+	services/afp.xml \
+	services/alvr.xml \
 	services/amanda-client.xml \
 	services/amanda-k5-client.xml \
 	services/amqp.xml \
 	services/amqps.xml \
+	services/anno-1602.xml \
+	services/anno-1800.xml \
 	services/apcupsd.xml \
 	services/audit.xml \
+	services/ausweisapp2.xml \
 	services/bacula-client.xml \
 	services/bacula.xml \
+	services/bareos-director.xml \
+	services/bareos-filedaemon.xml \
+	services/bareos-storage.xml \
 	services/bb.xml \
 	services/bgp.xml \
 	services/bitcoin-rpc.xml \
@@ -131,17 +152,26 @@ CONFIG_FILES = \
 	services/bitcoin.xml \
 	services/bittorrent-lsd.xml \
 	services/lightning-network.xml \
+	services/ceph-exporter.xml \
 	services/ceph-mon.xml \
 	services/ceph.xml \
 	services/cfengine.xml \
+	services/checkmk-agent.xml \
+	services/civilization-iv.xml \
+	services/civilization-v.xml \
 	services/cockpit.xml \
 	services/collectd.xml \
 	services/condor-collector.xml \
+	services/cratedb.xml \
 	services/ctdb.xml \
+	services/dds.xml \
+	services/dds-multicast.xml \
+	services/dds-unicast.xml \
 	services/dhcpv6-client.xml \
 	services/dhcpv6.xml \
 	services/dhcp.xml \
 	services/distcc.xml \
+	services/dns-over-quic.xml \
 	services/dns-over-tls.xml \
 	services/dns.xml \
 	services/docker-registry.xml \
@@ -150,6 +180,7 @@ CONFIG_FILES = \
 	services/elasticsearch.xml \
 	services/etcd-client.xml \
 	services/etcd-server.xml \
+	services/factorio.xml \
 	services/finger.xml \
 	services/foreman.xml \
 	services/foreman-proxy.xml \
@@ -163,13 +194,17 @@ CONFIG_FILES = \
 	services/ganglia-client.xml \
 	services/ganglia-master.xml \
 	services/git.xml \
+	services/gpsd.xml \
 	services/grafana.xml \
 	services/gre.xml \
 	services/high-availability.xml \
+	services/http3.xml \
 	services/https.xml \
 	services/http.xml \
+	services/ident.xml \
 	services/imaps.xml \
 	services/imap.xml \
+	services/ipfs.xml \
 	services/ipp-client.xml \
 	services/ipp.xml \
 	services/ipsec.xml \
@@ -186,20 +221,31 @@ CONFIG_FILES = \
 	services/kpasswd.xml \
 	services/kprop.xml \
 	services/kshell.xml \
+	services/kubelet.xml \
+	services/kubelet-readonly.xml \
+	services/kubelet-worker.xml \
 	services/kube-api.xml \
 	services/kube-apiserver.xml \
 	services/kube-control-plane.xml \
+	services/kube-control-plane-secure.xml \
 	services/kube-controller-manager.xml \
+	services/kube-controller-manager-secure.xml \
+	services/kube-nodeport-services.xml \
 	services/kube-scheduler.xml \
-	services/kubelet-worker.xml \
+	services/kube-scheduler-secure.xml \
+	services/kube-worker.xml \
 	services/ldaps.xml \
 	services/ldap.xml \
 	services/libvirt-tls.xml \
 	services/libvirt.xml \
+	services/llmnr-client.xml \
+	services/llmnr-tcp.xml \
+	services/llmnr-udp.xml \
 	services/llmnr.xml \
 	services/managesieve.xml \
 	services/matrix.xml \
 	services/mdns.xml \
+	services/minecraft.xml \
 	services/memcache.xml \
 	services/minidlna.xml \
 	services/mongodb.xml \
@@ -212,7 +258,10 @@ CONFIG_FILES = \
 	services/murmur.xml \
 	services/mysql.xml \
 	services/nbd.xml \
+	services/nebula.xml \
+	services/need-for-speed-most-wanted.xml \
 	services/netbios-ns.xml \
+	services/netdata-dashboard.xml \
 	services/nfs.xml \
 	services/nfs3.xml \
 	services/nmea-0183.xml \
@@ -220,6 +269,7 @@ CONFIG_FILES = \
 	services/ntp.xml \
 	services/nut.xml \
 	services/openvpn.xml \
+	services/opentelemetry.xml \
 	services/ovirt-imageio.xml \
 	services/ovirt-storageconsole.xml \
 	services/ovirt-vmconsole.xml \
@@ -232,8 +282,11 @@ CONFIG_FILES = \
 	services/pop3.xml \
 	services/postgresql.xml \
 	services/privoxy.xml \
+	services/prometheus-node-exporter.xml \
 	services/prometheus.xml \
 	services/proxy-dhcp.xml \
+	services/ps2link.xml \
+	services/ps3netsrv.xml \
 	services/ptp.xml \
 	services/pulseaudio.xml \
 	services/puppetmaster.xml \
@@ -254,6 +307,7 @@ CONFIG_FILES = \
 	services/samba-dc.xml \
 	services/samba.xml \
 	services/sane.xml \
+	services/settlers-history-collection.xml \
 	services/sips.xml \
 	services/sip.xml \
 	services/slp.xml \
@@ -262,21 +316,31 @@ CONFIG_FILES = \
 	services/smtp.xml \
 	services/snmptrap.xml \
 	services/snmp.xml \
+	services/snmptls-trap.xml \
+	services/snmptls.xml \
 	services/spideroak-lansync.xml \
 	services/spotify-sync.xml \
 	services/squid.xml \
 	services/ssdp.xml \
 	services/ssh.xml \
+	services/statsrv.xml \
 	services/steam-streaming.xml \
+	services/stellaris.xml \
+	services/stronghold-crusader.xml \
+	services/submission.xml \
+	services/supertuxkart.xml \
 	services/svdrp.xml \
 	services/svn.xml \
 	services/syncthing.xml \
 	services/syncthing-gui.xml \
+	services/syncthing-relay.xml \
 	services/synergy.xml \
+	services/syscomlan.xml \
 	services/syslog-tls.xml \
 	services/syslog.xml \
 	services/telnet.xml \
 	services/tentacle.xml \
+	services/terraria.xml \
 	services/tftp.xml \
 	services/tile38.xml \
 	services/tinc.xml \
@@ -285,9 +349,15 @@ CONFIG_FILES = \
 	services/upnp-client.xml \
 	services/vdsm.xml \
 	services/vnc-server.xml \
+	services/vrrp.xml \
+	services/warpinator.xml \
 	services/wbem-http.xml \
 	services/wbem-https.xml \
 	services/wireguard.xml \
+	services/ws-discovery-client.xml \
+	services/ws-discovery-tcp.xml \
+	services/ws-discovery-udp.xml \
+	services/ws-discovery.xml \
 	services/wsman.xml \
 	services/wsmans.xml \
 	services/xdmcp.xml \
@@ -296,7 +366,12 @@ CONFIG_FILES = \
 	services/xmpp-local.xml \
 	services/xmpp-server.xml \
 	services/zabbix-agent.xml \
+	services/zabbix-java-gateway.xml \
 	services/zabbix-server.xml \
+	services/zabbix-trapper.xml \
+	services/zabbix-web-service.xml \
+	services/zero-k.xml \
+	services/zerotier.xml \
 	zones/block.xml \
 	zones/dmz.xml \
 	zones/drop.xml \
@@ -307,6 +382,17 @@ CONFIG_FILES = \
 	zones/trusted.xml \
 	zones/work.xml
 
+CONFIG_FILES_TESTS = \
+	tests/policies/libvirt-routed-in.xml \
+	tests/policies/libvirt-routed-out.xml \
+	tests/policies/libvirt-to-host.xml \
+	tests/zones/FedoraServer.xml \
+	tests/zones/FedoraWorkstation.xml \
+	tests/zones/libvirt-routed.xml \
+	tests/zones/libvirt.xml \
+	tests/zones/nm-shared.xml \
+	$(NULL)
+
 EXTRA_DIST = \
 	$(desktop_FILES) \
 	$(appdata_FILES) \
@@ -314,6 +400,8 @@ EXTRA_DIST = \
 	$(polkit1_action_FILES) \
 	$(gsettings_in_file) \
 	$(CONFIG_FILES) \
+	$(CONFIG_FILES_TESTS) \
+	$(dist_xmlschema_DATA) \
 	lockdown-whitelist.xml.in \
 	firewalld.init \
 	firewalld.logrotate.in \
@@ -460,9 +548,13 @@ install-data-hook:
 		rm -f org.fedoraproject.FirewallD1.policy && \
 		$(LN_S) org.fedoraproject.FirewallD1.server.policy.choice org.fedoraproject.FirewallD1.policy
 
+check-local-xmlschema:
+	./xmlschema/check.sh
+	./xmlschema/check.sh -d ./tests/
+
 # make sure CONFIG_FILES are also in POTFILES
-check-local:
-	@for file in $(filter-out helpers/% %/README,$(CONFIG_FILES)); do \
+check-local: check-local-xmlschema
+	@for file in $(filter-out helpers/% %/README.md,$(CONFIG_FILES)); do \
 		if ! grep "$${file}" ${top_srcdir}/po/POTFILES.in > /dev/null; then \
 			echo "$${file} should be in ${abs_top_srcdir}/po/POTFILES.in"; \
 			exit 1; \

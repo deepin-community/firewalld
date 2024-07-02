@@ -7,24 +7,14 @@
 ]>
 
 <!--
+  SPDX-License-Identifier: GPL-2.0-or-later
+
   This file is part of firewalld.
 
   Copyright (C) 2010-2013 Red Hat, Inc.
+
   Authors:
   Thomas Woerner <twoerner@redhat.com>
-
-  This program is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2 of the License, or
-  (at your option) any later version.
-
-  This program is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -->
 
 <refentry id="firewalld.zones">
@@ -76,7 +66,7 @@
       <refsect3>
 	<title>Ports and protocols</title>
 	<para>
-	  Definition of <literal>tcp</literal> or <literal>udp</literal> ports, where ports can be a single port or a port range.
+	  Definition of <literal>tcp</literal>, <literal>udp</literal>, <literal>sctp</literal> or <literal>dccp</literal> ports, where ports can be a single port or a port range.
 	</para>
       </refsect3>
 
@@ -238,7 +228,7 @@
        If the connection is controlled by NetworkManager, you can also use <command>nm-connection-editor</command> to change the zone.
       </para>
       <para>
-	For the addion or change of interfaces that are not under control of NetworkManager: firewalld tries to change the ZONE setting in the ifcfg file, if an ifcfg file exists that is using the interface.
+	For the addition or change of interfaces that are not under control of NetworkManager: firewalld tries to change the ZONE setting in the ifcfg file, if an ifcfg file exists that is using the interface.
       </para>
       <para>
 	Only for the removal of interfaces that are not under control of NetworkManager: firewalld is not trying to change the ZONE setting in the ifcfg file. This is needed to make sure that an ifdown of the interface will not result in a reset of the zone setting to the default zone. Only the zone binding is then removed in firewalld then.

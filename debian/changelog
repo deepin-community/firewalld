@@ -1,3 +1,177 @@
+firewalld (2.1.2-1) unstable; urgency=medium
+
+  * New upstream version 2.1.2
+  * Build-depend on pkgconf rather than pkg-config
+  * Bump Standards-Version to 4.7.0
+
+ -- Michael Biebl <biebl@debian.org>  Sat, 13 Apr 2024 18:28:51 +0200
+
+firewalld (2.1.1-1) unstable; urgency=medium
+
+  * New upstream version 2.1.1
+
+ -- Michael Biebl <biebl@debian.org>  Mon, 29 Jan 2024 18:11:46 +0100
+
+firewalld (2.1.0-1) unstable; urgency=medium
+
+  * New upstream version 2.1.0
+  * Rebase patches
+  * Update copyright information
+
+ -- Michael Biebl <biebl@debian.org>  Sat, 06 Jan 2024 15:57:45 +0100
+
+firewalld (2.0.2-1) unstable; urgency=medium
+
+  * New upstream version 2.0.2
+  * Rebase patches
+  * Drop alternative Depends on transitional policykit-1.
+    With polkitd being available in bookworm, the alternative dependency is
+    no longer needed.
+
+ -- Michael Biebl <biebl@debian.org>  Wed, 29 Nov 2023 09:13:46 +0100
+
+firewalld (2.0.1-2) unstable; urgency=medium
+
+  * Move systemd service file to /usr.
+    Add a corresponding versioned Build-Depends on debhelper (>= 13.11.6) to
+    ensure we have a recent enough dh_installsystemd.
+
+ -- Michael Biebl <biebl@debian.org>  Thu, 23 Nov 2023 07:42:10 +0100
+
+firewalld (2.0.1-1) unstable; urgency=medium
+
+  * New upstream version 2.0.1
+    - docs: fix reference to lockdown-whitelist.xml in SYNOPSIS section
+      (Closes: #1040547)
+    - fix(firewall-config): escape markup stored in bindings store
+      (Closes: #925293)
+  * Rebase patches
+  * build: remove generated files on distclean (Closes: #1044402)
+
+ -- Michael Biebl <biebl@debian.org>  Tue, 03 Oct 2023 15:42:45 +0200
+
+firewalld (2.0.0-2) unstable; urgency=medium
+
+  * Upload to unstable
+
+ -- Michael Biebl <biebl@debian.org>  Sun, 24 Sep 2023 20:05:26 +0200
+
+firewalld (2.0.0-1) experimental; urgency=medium
+
+  * New upstream version 2.0.0
+  * Rebase patches
+
+ -- Michael Biebl <biebl@debian.org>  Mon, 03 Jul 2023 11:50:28 +0200
+
+firewalld (1.3.3-1) unstable; urgency=medium
+
+  * New upstream version 1.3.3
+  * Drop obsolete Breaks/Replaces
+  * Upload to unstable
+
+ -- Michael Biebl <biebl@debian.org>  Thu, 15 Jun 2023 13:51:52 +0200
+
+firewalld (1.3.2-1) experimental; urgency=medium
+
+  * New upstream version 1.3.2
+
+ -- Michael Biebl <biebl@debian.org>  Sat, 22 Apr 2023 10:57:54 +0200
+
+firewalld (1.3.1-1) experimental; urgency=medium
+
+  * New upstream version 1.3.1
+
+ -- Michael Biebl <biebl@debian.org>  Tue, 18 Apr 2023 17:51:52 +0200
+
+firewalld (1.3.0-1) unstable; urgency=medium
+
+  * New upstream version 1.3.0
+
+ -- Michael Biebl <biebl@debian.org>  Fri, 06 Jan 2023 17:44:15 +0100
+
+firewalld (1.2.3-1) unstable; urgency=medium
+
+  * New upstream version 1.2.3
+  * Bump Standards-Version to 4.6.2
+
+ -- Michael Biebl <biebl@debian.org>  Thu, 05 Jan 2023 22:10:51 +0100
+
+firewalld (1.2.2-2) unstable; urgency=medium
+
+  * autopkgtest: Depend on polkitd in preference to transitional policykit-1
+  * Fix mismatched lintian overrides for non-standard-dir-perm
+
+ -- Michael Biebl <biebl@debian.org>  Wed, 07 Dec 2022 16:14:29 +0100
+
+firewalld (1.2.2-1) unstable; urgency=medium
+
+  * New upstream version 1.2.2
+
+ -- Michael Biebl <biebl@debian.org>  Wed, 30 Nov 2022 11:31:40 +0100
+
+firewalld (1.2.1-1) unstable; urgency=medium
+
+  * New upstream version 1.2.1
+  * Update debian/watch.
+    Use the GitHub API when checking for new upstream releases.
+  * Rebase patches.
+    Drop patches that have been merged upstream or are no longer relevant.
+
+ -- Michael Biebl <biebl@debian.org>  Thu, 29 Sep 2022 14:37:47 +0200
+
+firewalld (1.2.0-2) unstable; urgency=medium
+
+  [ Simon McVittie ]
+  * d/control: Depend on polkitd in preference to transitional policykit-1.
+    This package doesn't seem to use pkexec(1), so there's no need to
+    pull that in.
+
+  [ Michael Biebl ]
+  * Use execute_before/after to simplify debian/rules
+  * Use dh-sequence-python3 Build-Depends to enable the python3 addon
+  * Remove Kodi services since Kodi ships them itself (Closes: #1015886)
+
+ -- Michael Biebl <biebl@debian.org>  Fri, 02 Sep 2022 23:20:10 +0200
+
+firewalld (1.2.0-1) unstable; urgency=medium
+
+  * New upstream version 1.2.0
+  * Rebase patches
+  * test(functions): normalize iptables ipv6-icmp/icmpv6
+
+ -- Michael Biebl <biebl@debian.org>  Wed, 06 Jul 2022 15:27:04 +0200
+
+firewalld (1.1.2-1) unstable; urgency=medium
+
+  * New upstream version 1.1.2
+  * Fix bashism in testsuite
+  * Bump Standards-Version to 4.6.1
+
+ -- Michael Biebl <biebl@debian.org>  Sat, 02 Jul 2022 15:00:08 +0200
+
+firewalld (1.1.1-1) unstable; urgency=medium
+
+  * New upstream version 1.1.1
+
+ -- Michael Biebl <biebl@debian.org>  Sat, 26 Mar 2022 09:07:28 +0100
+
+firewalld (1.1.0-1) unstable; urgency=medium
+
+  * New upstream version 1.1.0
+  * Drop obsolete migration code
+  * Bump Standards-Version to 4.6.0
+
+ -- Michael Biebl <biebl@debian.org>  Fri, 25 Feb 2022 22:05:05 +0100
+
+firewalld (1.0.3-1) unstable; urgency=medium
+
+  * New upstream version 1.0.3
+  * autopkgtest: add time dependency to standard-tests.
+    Debian's default shell dash does not have a "time" builtin, which is
+    used in gh881.at.
+
+ -- Michael Biebl <biebl@debian.org>  Tue, 11 Jan 2022 11:25:13 +0100
+
 firewalld (1.0.2-1) unstable; urgency=medium
 
   * New upstream version 1.0.2

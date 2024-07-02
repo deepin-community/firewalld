@@ -1,42 +1,31 @@
-# -*- coding: utf-8 -*-
+# SPDX-License-Identifier: GPL-2.0-or-later
 #
 # Copyright (C) 2015-2016 Red Hat, Inc.
 #
 # Authors:
 # Thomas Woerner <twoerner@redhat.com>
-#
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
 
 """ipset backend"""
 
-__all__ = [ "FirewallIPSet" ]
-
 from firewall.core.logger import log
-from firewall.core.ipset import remove_default_create_options as rm_def_cr_opts, \
-                                normalize_ipset_entry, check_entry_overlaps_existing
+from firewall.core.ipset import (
+    remove_default_create_options as rm_def_cr_opts,
+    normalize_ipset_entry,
+    check_entry_overlaps_existing,
+    check_for_overlapping_entries,
+)
 from firewall.core.io.ipset import IPSet
 from firewall import errors
 from firewall.errors import FirewallError
 
-class FirewallIPSet(object):
+
+class FirewallIPSet:
     def __init__(self, fw):
         self._fw = fw
-        self._ipsets = { }
+        self._ipsets = {}
 
     def __repr__(self):
-        return '%s(%r)' % (self.__class__, self._ipsets)
+        return "%s(%r)" % (self.__class__, self._ipsets)
 
     # ipsets
 
@@ -63,18 +52,27 @@ class FirewallIPSet(object):
             self.check_applied_obj(obj)
         return obj
 
+    def omit_native_ipset(self):
+        # if using nftables, we can avoid creating ipsets in the native ipset
+        # backend. But only if there aren't any direct rules.
+        if not self._fw.nftables_enabled or self._fw.direct.has_runtime_configuration():
+            return False
+
+        return True
+
     def backends(self):
         backends = []
         if self._fw.nftables_enabled:
             backends.append(self._fw.nftables_backend)
-        if self._fw.ipset_enabled:
+        if self._fw.ipset_enabled and not self.omit_native_ipset():
             backends.append(self._fw.ipset_backend)
         return backends
 
     def add_ipset(self, obj):
         if obj.type not in self._fw.ipset_supported_types:
-            raise FirewallError(errors.INVALID_TYPE,
-                                "'%s' is not supported by ipset." % obj.type)
+            raise FirewallError(
+                errors.INVALID_TYPE, "'%s' is not supported by ipset." % obj.type
+            )
         self._ipsets[obj.name] = obj
 
     def remove_ipset(self, name, keep=False):
@@ -89,18 +87,19 @@ class FirewallIPSet(object):
             log.debug1("Keeping ipset '%s' because of timeout option", name)
         del self._ipsets[name]
 
-    def apply_ipset(self, name):
+    def apply_ipset(self, name, backends=None):
         obj = self._ipsets[name]
 
-        for backend in self.backends():
+        for backend in backends if backends else self.backends():
             if backend.name == "ipset":
                 active = backend.set_get_active_terse()
 
-                if name in active and ("timeout" not in obj.options or \
-                                       obj.options["timeout"] == "0" or \
-                                       obj.type != active[name][0] or \
-                                       rm_def_cr_opts(obj.options) != \
-                                       active[name][1]):
+                if name in active and (
+                    "timeout" not in obj.options
+                    or obj.options["timeout"] == "0"
+                    or obj.type != active[name][0]
+                    or rm_def_cr_opts(obj.options) != active[name][1]
+                ):
                     try:
                         backend.set_destroy(name)
                     except Exception as msg:
@@ -113,8 +112,7 @@ class FirewallIPSet(object):
                     raise FirewallError(errors.COMMAND_FAILED, msg)
                 else:
                     obj.applied = True
-                    if "timeout" in obj.options and \
-                       obj.options["timeout"] != "0":
+                    if "timeout" in obj.options and obj.options["timeout"] != "0":
                         # no entries visible for ipsets with timeout
                         continue
 
@@ -130,21 +128,21 @@ class FirewallIPSet(object):
                         raise FirewallError(errors.COMMAND_FAILED, msg)
             else:
                 try:
-                    backend.set_restore(obj.name, obj.type,
-                                                   obj.entries, obj.options,
-                                                   None)
+                    backend.set_restore(
+                        obj.name, obj.type, obj.entries, obj.options, None
+                    )
                 except Exception as msg:
                     raise FirewallError(errors.COMMAND_FAILED, msg)
                 else:
                     obj.applied = True
 
-    def apply_ipsets(self):
+    def apply_ipsets(self, backends=None):
         for name in self.get_ipsets():
             obj = self._ipsets[name]
             obj.applied = False
 
             log.debug1("Applying ipset '%s'" % name)
-            self.apply_ipset(name)
+            self.apply_ipset(name, backends)
 
     def flush(self):
         for backend in self.backends():
@@ -174,8 +172,7 @@ class FirewallIPSet(object):
 
     def check_applied_obj(self, obj):
         if not obj.applied:
-            raise FirewallError(
-                errors.NOT_APPLIED, obj.name)
+            raise FirewallError(errors.NOT_APPLIED, obj.name)
 
     # OPTIONS
 
@@ -194,8 +191,9 @@ class FirewallIPSet(object):
 
         IPSet.check_entry(entry, obj.options, obj.type)
         if entry in obj.entries:
-            raise FirewallError(errors.ALREADY_ENABLED,
-                                "'%s' already is in '%s'" % (entry, name))
+            raise FirewallError(
+                errors.ALREADY_ENABLED, "'%s' already is in '%s'" % (entry, name)
+            )
         check_entry_overlaps_existing(entry, obj.entries)
 
         try:
@@ -214,8 +212,7 @@ class FirewallIPSet(object):
 
         # no entry check for removal
         if entry not in obj.entries:
-            raise FirewallError(errors.NOT_ENABLED,
-                                "'%s' not in '%s'" % (entry, name))
+            raise FirewallError(errors.NOT_ENABLED, "'%s' not in '%s'" % (entry, name))
         try:
             for backend in self.backends():
                 backend.set_delete(obj.name, entry)
@@ -242,11 +239,7 @@ class FirewallIPSet(object):
     def set_entries(self, name, entries):
         obj = self.get_ipset(name, applied=True)
 
-        _entries = set()
-        for _entry in entries:
-            check_entry_overlaps_existing(_entry, _entries)
-            _entries.add(normalize_ipset_entry(_entry))
-        entries = list(_entries)
+        check_for_overlapping_entries(entries)
 
         for entry in entries:
             IPSet.check_entry(entry, obj.options, obj.type)
@@ -268,8 +261,9 @@ class FirewallIPSet(object):
                     for entry in obj.entries:
                         backend.set_add(obj.name, entry)
                 else:
-                    backend.set_restore(obj.name, obj.type, obj.entries,
-                                                   obj.options, None)
+                    backend.set_restore(
+                        obj.name, obj.type, obj.entries, obj.options, None
+                    )
         except Exception as msg:
             raise FirewallError(errors.COMMAND_FAILED, msg)
         else:

@@ -9,15 +9,15 @@ FWD_RELOAD
 NFT_LIST_RULES([inet], [mangle_PRE_public_allow], 0, [dnl
     table inet firewalld {
         chain mangle_PRE_public_allow {
-            icmpv6 parameter-problem icmpv6 code no-route mark set mark & 0x00000086 ^ 0x00000086
+            icmpv6 parameter-problem icmpv6 code 0 mark set mark & 0x00000086 ^ 0x00000086
         }
     }
 ])
 NFT_LIST_RULES([inet], [filter_IN_public_allow], 0, [dnl
     table inet firewalld {
         chain filter_IN_public_allow {
-            tcp dport 22 ct state new,untracked accept
-            ip6 daddr fe80::/64 udp dport 546 ct state new,untracked accept
+            tcp dport 22 accept
+            ip6 daddr fe80::/64 udp dport 546 accept
             icmp echo-request accept
             icmpv6 echo-request accept
             icmpv6 nd-neighbor-advert accept
@@ -28,18 +28,18 @@ NFT_LIST_RULES([inet], [filter_IN_public_allow], 0, [dnl
 IPTABLES_LIST_RULES([mangle], [PRE_public_allow], 0, [dnl
 ])
 IPTABLES_LIST_RULES([filter], [IN_public_allow], 0, [dnl
-    ACCEPT tcp -- 0.0.0.0/0 0.0.0.0/0 tcp dpt:22 ctstate NEW,UNTRACKED
-    ACCEPT icmp -- 0.0.0.0/0 0.0.0.0/0 icmptype 8
-    ACCEPT icmp -- 0.0.0.0/0 0.0.0.0/0 icmptype 13
+    ACCEPT 6 -- 0.0.0.0/0 0.0.0.0/0 tcp dpt:22
+    ACCEPT 1 -- 0.0.0.0/0 0.0.0.0/0 icmptype 8
+    ACCEPT 1 -- 0.0.0.0/0 0.0.0.0/0 icmptype 13
 ])
 IP6TABLES_LIST_RULES([mangle], [PRE_public_allow], 0, [dnl
-    MARK icmpv6 ::/0 ::/0 ipv6-icmptype 4 code 0 MARK or 0x86
+    MARK 58 -- ::/0 ::/0 ipv6-icmptype 4 code 0 MARK or 0x86
 ])
 IP6TABLES_LIST_RULES([filter], [IN_public_allow], 0, [dnl
-    ACCEPT tcp ::/0 ::/0 tcp dpt:22 ctstate NEW,UNTRACKED
-    ACCEPT udp ::/0 fe80::/64 udp dpt:546 ctstate NEW,UNTRACKED
-    ACCEPT icmpv6 ::/0 ::/0 ipv6-icmptype 128
-    ACCEPT icmpv6 ::/0 ::/0 ipv6-icmptype 136
+    ACCEPT 6 -- ::/0 ::/0 tcp dpt:22
+    ACCEPT 17 -- ::/0 fe80::/64 udp dpt:546
+    ACCEPT 58 -- ::/0 ::/0 ipv6-icmptype 128
+    ACCEPT 58 -- ::/0 ::/0 ipv6-icmptype 136
 ])
 
 dnl verify bad icmptypes are rejected

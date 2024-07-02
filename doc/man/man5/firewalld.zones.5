@@ -1,13 +1,13 @@
 '\" t
 .\"     Title: firewalld.zones
 .\"    Author: Thomas Woerner <twoerner@redhat.com>
-.\" Generator: DocBook XSL Stylesheets vsnapshot <http://docbook.sf.net/>
+.\" Generator: DocBook XSL Stylesheets v1.79.1 <http://docbook.sf.net/>
 .\"      Date: 
 .\"    Manual: firewalld.zones
-.\"    Source: firewalld 1.0.2
+.\"    Source: firewalld 2.1.2
 .\"  Language: English
 .\"
-.TH "FIREWALLD\&.ZONES" "5" "" "firewalld 1.0.2" "firewalld.zones"
+.TH "FIREWALLD\&.ZONES" "5" "" "firewalld 2.1.2" "firewalld.zones"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -68,9 +68,11 @@ A service is a combination of port and/or protocol entries\&. Optionally netfilt
 .RS 4
 .PP
 Definition of
-\fItcp\fR
+\fItcp\fR,
+\fIudp\fR,
+\fIsctp\fR
 or
-\fIudp\fR
+\fIdccp\fR
 ports, where ports can be a single port or a port range\&.
 .RE
 .sp
@@ -208,7 +210,7 @@ If the connection is controlled by NetworkManager, you can also use
 \fBnm\-connection\-editor\fR
 to change the zone\&.
 .PP
-For the addion or change of interfaces that are not under control of NetworkManager: firewalld tries to change the ZONE setting in the ifcfg file, if an ifcfg file exists that is using the interface\&.
+For the addition or change of interfaces that are not under control of NetworkManager: firewalld tries to change the ZONE setting in the ifcfg file, if an ifcfg file exists that is using the interface\&.
 .PP
 Only for the removal of interfaces that are not under control of NetworkManager: firewalld is not trying to change the ZONE setting in the ifcfg file\&. This is needed to make sure that an ifdown of the interface will not result in a reset of the zone setting to the default zone\&. Only the zone binding is then removed in firewalld then\&.
 .SH "SEE ALSO"
@@ -218,11 +220,6 @@ Only for the removal of interfaces that are not under control of NetworkManager:
 firewalld home page:
 .RS 4
 \m[blue]\fB\%http://firewalld.org\fR\m[]
-.RE
-.PP
-More documentation with examples:
-.RS 4
-\m[blue]\fB\%http://fedoraproject.org/wiki/FirewallD\fR\m[]
 .RE
 .SH "AUTHORS"
 .PP

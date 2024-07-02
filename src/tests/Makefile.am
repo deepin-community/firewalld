@@ -15,14 +15,18 @@ EXTRA_DIST = \
 	$(TESTSUITE_INTEGRATION) \
 	$(TESTSUITE_FILES) \
 	$(wildcard $(srcdir)/python/*.py) \
+	$(wildcard $(srcdir)/unit/*.py) \
 	$(srcdir)/package.m4 \
 	atlocal.in
 
-DISTCLEANFILES = atconfig
+DISTCLEANFILES = \
+	$(TESTSUITE) \
+	$(TESTSUITE_INTEGRATION) \
+	atconfig
 
 testsuitedir = $(pkgdatadir)/testsuite
 dist_testsuite_SCRIPTS = $(TESTSUITE)
-dist_testsuite_DATA = README
+dist_testsuite_DATA = README.md
 
 testsuite_integrationdir = $(pkgdatadir)/testsuite/integration
 dist_testsuite_integration_SCRIPTS = $(TESTSUITE_INTEGRATION)
@@ -58,7 +62,10 @@ $(TESTSUITE) $(TESTSUITE_INTEGRATION): $(TESTSUITE_FILES) $(srcdir)/package.m4
 	$(AUTOTEST) -I '$(srcdir)' -o $@.tmp $@.at
 	mv $@.tmp $@
 
-CONTAINER_TARGETS = check-container-debian-sid check-container-fedora-rawhide check-container-centos8-stream
+CONTAINER_TARGETS = check-container-debian-sid \
+                    check-container-fedora-rawhide \
+                    check-container-centos8-stream \
+                    check-container-centos9-stream
 
 check-container-debian-sid-image: check-container-%-image:
 	(cd $(abs_top_srcdir) && { \
@@ -67,9 +74,18 @@ check-container-debian-sid-image: check-container-%-image:
 	echo "RUN apt-get install -y autoconf automake pkg-config intltool libglib2.0-dev \
 	                             xsltproc docbook-xsl docbook-xml iproute2 iptables ipset ebtables \
 	                             nftables libxml2-utils libdbus-1-dev libgirepository1.0-dev \
-	                             python3-dbus python3-gi python3-nftables \
-	                             procps network-manager gir1.2-nm-1.0" && \
-	echo "COPY . /tmp/firewalld"; \
+	                             python3-dbus python3-gi python3-nftables sudo \
+	                             procps network-manager gir1.2-nm-1.0 time policykit-1 systemd" && \
+	echo "ENV container docker" && \
+	echo "VOLUME [ \"/sys/fs/cgroup\" ]" && \
+	echo "CMD [\"/usr/sbin/init\"]" && \
+	echo "RUN mkdir -p /run/dbus" && \
+	echo "COPY . /root/firewalld" && \
+	echo "WORKDIR /root/firewalld" && \
+	echo "RUN ./autogen.sh" && \
+	echo "RUN ./configure --sysconfdir=/etc PYTHON=\"/usr/bin/python3\" am_cv_python_pythondir=/usr/lib/python3/dist-packages" && \
+	echo "RUN make" && \
+	echo "RUN make install" ; \
 	} | $(PODMAN) build -t firewalld-testsuite-$* -f - . )
 
 check-container-fedora-rawhide-image: check-container-%-image:
@@ -79,40 +95,77 @@ check-container-fedora-rawhide-image: check-container-%-image:
 	echo "RUN dnf -y install autoconf automake conntrack-tools desktop-file-utils \
 	                 docbook-style-xsl file gettext glib2-devel intltool ipset \
 	                 iptables iptables-nft libtool libxml2 libxslt make nftables \
-	                 python3-nftables python3-gobject-base \
+	                 python3-nftables python3-gobject-base python3-dbus \
 	                 diffutils procps-ng iproute which dbus-daemon \
-	                 NetworkManager NetworkManager-ovs" && \
+	                 NetworkManager NetworkManager-ovs time polkit systemd sudo" && \
 	echo "RUN alternatives --set ebtables /usr/sbin/ebtables-nft" && \
-	echo "COPY . /tmp/firewalld"; \
+	echo "ENV container docker" && \
+	echo "VOLUME [ \"/sys/fs/cgroup\" ]" && \
+	echo "CMD [\"/usr/sbin/init\"]" && \
+	echo "RUN mkdir -p /run/dbus" && \
+	echo "COPY . /root/firewalld" && \
+	echo "WORKDIR /root/firewalld" && \
+	echo "RUN ./autogen.sh" && \
+	echo "RUN ./configure PYTHON=\"/usr/bin/python3\"" && \
+	echo "RUN make" && \
+	echo "RUN make install" ; \
 	} | $(PODMAN) build -t firewalld-testsuite-$* -f - . )
 
 check-container-centos8-stream-image: check-container-%-image:
 	(cd $(abs_top_srcdir) && { \
-	echo "FROM centos:8" && \
+	echo "FROM centos:stream8" && \
 	echo "RUN dnf -y makecache" && \
-	echo "RUN dnf -y install centos-release-stream" && \
 	echo "RUN dnf -y install autoconf automake conntrack-tools desktop-file-utils \
 	                 docbook-style-xsl file gettext glib2-devel intltool ipset \
 	                 iptables iptables-ebtables nftables libtool libxml2 \
-	                 libxslt make nftables python3-nftables \
+	                 libxslt make nftables python3-nftables python3-dbus \
 	                 python3-gobject-base diffutils procps-ng iproute which dbus-daemon \
-	                 NetworkManager NetworkManager-ovs" && \
-	echo "COPY . /tmp/firewalld"; \
+	                 NetworkManager NetworkManager-ovs time polkit systemd sudo" && \
+	echo "ENV container docker" && \
+	echo "VOLUME [ \"/sys/fs/cgroup\" ]" && \
+	echo "CMD [\"/usr/sbin/init\"]" && \
+	echo "RUN mkdir -p /run/dbus" && \
+	echo "COPY . /root/firewalld" && \
+	echo "WORKDIR /root/firewalld" && \
+	echo "RUN ./autogen.sh" && \
+	echo "RUN ./configure PYTHON=\"/usr/libexec/platform-python\"" && \
+	echo "RUN make" && \
+	echo "RUN make install" ; \
 	} | $(PODMAN) build -t firewalld-testsuite-$* -f - . )
 
-check-container-debian-sid: PYTHON=/usr/bin/python3
-check-container-fedora-rawhide: PYTHON=/usr/bin/python3
-check-container-centos8-stream: PYTHON=/usr/libexec/platform-python
+check-container-centos9-stream-image: check-container-%-image:
+	(cd $(abs_top_srcdir) && { \
+	echo "FROM centos:stream9" && \
+	echo "RUN dnf -y makecache" && \
+	echo "RUN dnf -y install autoconf automake conntrack-tools desktop-file-utils \
+	                 docbook-style-xsl file gettext glib2-devel intltool ipset \
+	                 iptables-nft nftables libtool libxml2 \
+	                 libxslt make nftables python3-nftables python3-dbus \
+	                 python3-gobject-base diffutils procps-ng iproute which dbus-daemon \
+	                 NetworkManager NetworkManager-ovs time polkit systemd sudo" && \
+	echo "ENV container docker" && \
+	echo "VOLUME [ \"/sys/fs/cgroup\" ]" && \
+	echo "CMD [\"/usr/sbin/init\"]" && \
+	echo "RUN mkdir -p /run/dbus" && \
+	echo "COPY . /root/firewalld" && \
+	echo "WORKDIR /root/firewalld" && \
+	echo "RUN ./autogen.sh" && \
+	echo "RUN ./configure PYTHON=\"/usr/libexec/platform-python\"" && \
+	echo "RUN make" && \
+	echo "RUN make install" ; \
+	} | $(PODMAN) build -t firewalld-testsuite-$* -f - . )
+
 $(CONTAINER_TARGETS): check-container-%: check-container-%-image
-	$(PODMAN) run -i --rm --privileged firewalld-testsuite-$* bash -c " \
-	cd /tmp/firewalld && \
-	./autogen.sh && \
-	./configure PYTHON=\"${PYTHON}\" && \
-	make && \
-	{ make -C src/tests check-local TESTSUITEFLAGS=\"$(TESTSUITEFLAGS)\" || \
-	  make -C src/tests check-local TESTSUITEFLAGS=\"--recheck --errexit --verbose\" ; } && \
-	make -C src/tests check-integration TESTSUITEFLAGS=\"$(TESTSUITEFLAGS)\" "
-	$(PODMAN) rmi firewalld-testsuite-$*
+	$(PODMAN) run --replace --detach --privileged --name firewalld-testsuite-$*-run firewalld-testsuite-$*
+	$(PODMAN) exec firewalld-testsuite-$*-run rm /usr/lib/firewalld/zones/nm-shared.xml
+	$(PODMAN) exec -it firewalld-testsuite-$*-run sh -c " \
+	{ make -C src/tests installcheck-local TESTSUITEFLAGS=\"$(TESTSUITEFLAGS)\" || \
+	  make -C src/tests installcheck-local TESTSUITEFLAGS=\"--recheck --errexit --verbose\" ; }"
+	$(PODMAN) exec firewalld-testsuite-$*-run systemctl stop NetworkManager
+	$(PODMAN) exec -it firewalld-testsuite-$*-run make -C src/tests installcheck-integration TESTSUITEFLAGS="$(TESTSUITEFLAGS)"
+	$(PODMAN) container stop firewalld-testsuite-$*-run
+	$(PODMAN) container rm firewalld-testsuite-$*-run
+	$(PODMAN) image rm firewalld-testsuite-$*
 
 check-container: $(CONTAINER_TARGETS)
 

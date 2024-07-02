@@ -1,9 +1,9 @@
 etc/firewalld/
 etc/logrotate.d/firewalld
-lib/systemd/
 usr/bin/firewall-cmd
 usr/bin/firewall-offline-cmd
 usr/lib/firewalld/
+usr/lib/systemd/
 usr/sbin/firewalld
 usr/share/dbus-1/
 usr/share/bash-completion/

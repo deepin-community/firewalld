@@ -1,26 +1,13 @@
 #!/usr/bin/python -Es
-# -*- coding: utf-8 -*-
+# SPDX-License-Identifier: GPL-2.0-or-later
 #
 # Copyright (C) 2016 Red Hat, Inc.
 #
 # Authors:
 # Thomas Woerner <twoerner@redhat.com>
-#
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
 
-class NiceExpander(object):
+
+class NiceExpander:
     def __init__(self, expanded_button, unexpanded_button, paned, child):
         self.expanded_button = expanded_button
         self.unexpanded_button = unexpanded_button
@@ -28,7 +15,7 @@ class NiceExpander(object):
         self.child = child
         self.sensitive = True
         self.expanded = False
-        self.callback = { }
+        self.callback = {}
         self.parent = self.expanded_button.get_parent()
 
         self.expanded_button.connect("clicked", self.expand_cb)
@@ -42,7 +29,7 @@ class NiceExpander(object):
         self.unexpanded_button.show()
         self.child.hide()
         width = self.unexpanded_button.get_allocated_width()
-        width += self.parent.get_border_width()*2
+        width += self.parent.get_border_width() * 2
         self.paned.set_position(width)
         self.call_notify_expanded()
 
@@ -52,7 +39,7 @@ class NiceExpander(object):
         self.unexpanded_button.hide()
         self.child.show()
         width = self.expanded_button.get_allocated_width()
-        width += self.parent.get_border_width()*2
+        width += self.parent.get_border_width() * 2
         self.paned.set_position(width)
         self.call_notify_expanded()
 
