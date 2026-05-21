@@ -7,7 +7,6 @@
 
 import copy
 from firewall.core.base import SHORTCUTS, DEFAULT_ZONE_TARGET, SOURCE_IPSET_TYPES
-from firewall.core.fw_transaction import FirewallTransaction
 from firewall.core.io.policy import Policy
 from firewall.core.logger import log
 from firewall.core.rich import (
@@ -44,10 +43,11 @@ class FirewallZone:
         self._zones.clear()
         self._zone_policies.clear()
 
-    def new_transaction(self):
-        t = FirewallTransaction(self._fw)
-        t.add_pre(self._fw.full_check_config)
-        return t
+    def with_transaction(self, *args, **kwargs):
+        ctx = self._fw.with_transaction(*args, **kwargs)
+        if ctx.is_temporary:
+            ctx.transaction.add_pre(self._fw.full_check_config)
+        return ctx
 
     def policy_name_from_zones(self, fromZone, toZone):
         return "zone_{fromZone}_{toZone}".format(fromZone=fromZone, toZone=toZone)
@@ -106,7 +106,7 @@ class FirewallZone:
             "source_ports",
             "icmp_blocks",
             "icmp_block_inversion",
-            "rules_str",
+            "rules",
             "protocols",
         ]:
             if (
@@ -136,16 +136,15 @@ class FirewallZone:
             ):
                 # zone --> any zone
                 setattr(p_obj, setting, copy.deepcopy(getattr(z_obj, setting)))
-            elif setting in ["rules_str"]:
-                p_obj.rules_str = []
-                p_obj.rules = []
-                for rule_str in z_obj.rules_str:
+            elif setting in ["rules"]:
+                p_obj.rules = set()
+                for rule in z_obj.rules:
                     current_policy = self.policy_name_from_zones(fromZone, toZone)
 
-                    rule = Rich_Rule(rule_str=rule_str)
-                    if current_policy in self._rich_rule_to_policies(z_obj.name, rule):
-                        p_obj.rules_str.append(rule_str)
-                        p_obj.rules.append(rule)
+                    if current_policy == self._get_policy_for_rich_rule(
+                        z_obj.name, rule
+                    ):
+                        p_obj.rules.add(rule)
 
         return p_obj
 
@@ -176,16 +175,17 @@ class FirewallZone:
     def remove_zone(self, zone):
         obj = self._zones[zone]
         if obj.applied:
-            self.unapply_zone_settings(zone)
+            with self.with_transaction() as transaction:
+                self.unapply_zone_settings(zone, transaction)
         del self._zones[zone]
         del self._zone_policies[zone]
 
-    def apply_zones(self, use_transaction=None):
+    def apply_zones(self, transaction):
         for zone in self.get_zones():
             z_obj = self._zones[zone]
             if len(z_obj.interfaces) > 0 or len(z_obj.sources) > 0:
                 log.debug1("Applying zone '%s'", zone)
-                self.apply_zone_settings(zone, use_transaction=use_transaction)
+                self.apply_zone_settings(zone, transaction)
 
     def set_zone_applied(self, zone, applied):
         obj = self._zones[zone]
@@ -238,23 +238,15 @@ class FirewallZone:
 
         return (self.policy_name_from_zones(fromZone, toZone), _chain)
 
-    def create_zone_base_by_chain(self, ipv, table, chain, use_transaction=None):
+    def create_zone_base_by_chain(self, ipv, table, chain, transaction):
         # Create zone base chains if the chain is reserved for a zone
         if ipv in ["ipv4", "ipv6"]:
             x = self.policy_from_chain(chain)
             if x is not None:
                 (policy, _chain) = self.policy_from_chain(chain)
-                if use_transaction is None:
-                    transaction = self.new_transaction()
-                else:
-                    transaction = use_transaction
-
                 self._fw.policy.gen_chain_rules(
                     policy, True, table, _chain, transaction
                 )
-
-                if use_transaction is None:
-                    transaction.execute(True)
 
     def _zone_settings(self, enable, zone, transaction):
         for key in ["interfaces", "sources", "forward", "icmp_block_inversion"]:
@@ -284,63 +276,38 @@ class FirewallZone:
         if enable:
             self._icmp_block_inversion(enable, zone, transaction)
 
-    def apply_zone_settings(self, zone, use_transaction=None):
+    def apply_zone_settings(self, zone, transaction):
         _zone = self._fw.check_zone(zone)
         obj = self._zones[_zone]
         if obj.applied:
             return
         obj.applied = True
 
-        if use_transaction is None:
-            transaction = self.new_transaction()
-        else:
-            transaction = use_transaction
-
         for policy in self._zone_policies[_zone]:
             log.debug1("Applying policy (%s) derived from zone '%s'", policy, zone)
-            self._fw.policy.apply_policy_settings(policy, use_transaction=transaction)
+            self._fw.policy.apply_policy_settings(policy, transaction)
 
         self._zone_settings(True, _zone, transaction)
 
-        if use_transaction is None:
-            transaction.execute(True)
-
-    def unapply_zone_settings(self, zone, use_transaction=None):
+    def unapply_zone_settings(self, zone, transaction):
         _zone = self._fw.check_zone(zone)
         obj = self._zones[_zone]
         if not obj.applied:
             return
 
-        if use_transaction is None:
-            transaction = self.new_transaction()
-        else:
-            transaction = use_transaction
-
         for policy in self._zone_policies[_zone]:
-            self._fw.policy.unapply_policy_settings(policy, use_transaction=transaction)
+            self._fw.policy.unapply_policy_settings(policy, transaction)
 
         self._zone_settings(False, _zone, transaction)
-
-        if use_transaction is None:
-            transaction.execute(True)
 
     def get_config_with_settings(self, zone):
         """
         :return: exported config updated with runtime settings
         """
         obj = self.get_zone(zone)
-        conf_dict = self.get_config_with_settings_dict(zone)
-        conf_list = []
-        for i in range(16):  # tuple based API has 16 elements
-            if obj.IMPORT_EXPORT_STRUCTURE[i][0] not in conf_dict:
-                # old API needs the empty elements as well. Grab it from the
-                # class otherwise we don't know the type.
-                conf_list.append(
-                    copy.deepcopy(getattr(obj, obj.IMPORT_EXPORT_STRUCTURE[i][0]))
-                )
-            else:
-                conf_list.append(conf_dict[obj.IMPORT_EXPORT_STRUCTURE[i][0]])
-        return tuple(conf_list)
+        return obj.export_config_tuple(
+            conf_dict=self.get_config_with_settings_dict(zone), length=16
+        )
 
     def get_config_with_settings_dict(self, zone):
         """
@@ -368,7 +335,9 @@ class FirewallZone:
     def set_config_with_settings_dict(self, zone, settings, sender):
         # stupid wrappers to convert rich rule string to rich rule object
         def add_rule_wrapper(zone, rule_str, timeout=0, sender=None):
-            self.add_rule(zone, Rich_Rule(rule_str=rule_str), timeout=0, sender=sender)
+            self.add_rule(
+                zone, Rich_Rule(rule_str=rule_str), timeout=timeout, sender=sender
+            )
 
         def remove_rule_wrapper(zone, rule_str):
             self.remove_rule(zone, Rich_Rule(rule_str=rule_str))
@@ -440,9 +409,7 @@ class FirewallZone:
         self.check_interface(interface)
         return interface
 
-    def add_interface(
-        self, zone, interface, sender=None, use_transaction=None, allow_apply=True
-    ):
+    def add_interface(self, zone, interface, sender=None):
         self._fw.check_panic()
         _zone = self._fw.check_zone(zone)
         _obj = self._zones[_zone]
@@ -462,23 +429,16 @@ class FirewallZone:
 
         log.debug1("Setting zone of interface '%s' to '%s'" % (interface, _zone))
 
-        if use_transaction is None:
-            transaction = self.new_transaction()
-        else:
-            transaction = use_transaction
+        with self.with_transaction() as transaction:
 
-        if not _obj.applied and allow_apply:
-            self.apply_zone_settings(zone, use_transaction=transaction)
-            transaction.add_fail(self.set_zone_applied, _zone, False)
+            if not _obj.applied:
+                self.apply_zone_settings(zone, transaction)
+                transaction.add_fail(self.set_zone_applied, _zone, False)
 
-        if allow_apply:
             self._interface(True, _zone, interface, transaction)
 
-        self.__register_interface(_obj, interface_id, zone, sender)
-        transaction.add_fail(self.__unregister_interface, _obj, interface_id)
-
-        if use_transaction is None:
-            transaction.execute(True)
+            self.__register_interface(_obj, interface_id, zone, sender)
+            transaction.add_fail(self.__unregister_interface, _obj, interface_id)
 
         return _zone
 
@@ -504,7 +464,7 @@ class FirewallZone:
 
         return _zone
 
-    def remove_interface(self, zone, interface, use_transaction=None):
+    def remove_interface(self, zone, interface):
         self._fw.check_panic()
         zoi = self.get_zone_of_interface(interface)
         if zoi is None:
@@ -518,18 +478,12 @@ class FirewallZone:
                 "remove_interface(%s, %s): zoi='%s'" % (zone, interface, zoi),
             )
 
-        if use_transaction is None:
-            transaction = self.new_transaction()
-        else:
-            transaction = use_transaction
+        with self.with_transaction() as transaction:
 
-        _obj = self._zones[_zone]
-        interface_id = self.__interface_id(interface)
-        transaction.add_post(self.__unregister_interface, _obj, interface_id)
-        self._interface(False, _zone, interface, transaction)
-
-        if use_transaction is None:
-            transaction.execute(True)
+            _obj = self._zones[_zone]
+            interface_id = self.__interface_id(interface)
+            transaction.add_post(self.__unregister_interface, _obj, interface_id)
+            self._interface(False, _zone, interface, transaction)
 
         return _zone
 
@@ -568,9 +522,7 @@ class FirewallZone:
         self.check_source(source, applied=applied)
         return source
 
-    def add_source(
-        self, zone, source, sender=None, use_transaction=None, allow_apply=True
-    ):
+    def add_source(self, zone, source, sender=None):
         self._fw.check_panic()
         _zone = self._fw.check_zone(zone)
         _obj = self._zones[_zone]
@@ -578,8 +530,8 @@ class FirewallZone:
         if check_mac(source):
             source = source.upper()
 
-        ipv = self.check_source(source, applied=allow_apply)
-        source_id = self.__source_id(source, applied=allow_apply)
+        ipv = self.check_source(source, applied=True)
+        source_id = self.__source_id(source, applied=True)
 
         if source_id in _obj.sources:
             raise FirewallError(
@@ -590,23 +542,16 @@ class FirewallZone:
                 errors.ZONE_CONFLICT, "'%s' already bound to a zone" % source
             )
 
-        if use_transaction is None:
-            transaction = self.new_transaction()
-        else:
-            transaction = use_transaction
+        with self.with_transaction() as transaction:
 
-        if not _obj.applied and allow_apply:
-            self.apply_zone_settings(zone, use_transaction=transaction)
-            transaction.add_fail(self.set_zone_applied, _zone, False)
+            if not _obj.applied:
+                self.apply_zone_settings(zone, transaction)
+                transaction.add_fail(self.set_zone_applied, _zone, False)
 
-        if allow_apply:
             self._source(True, _zone, ipv, source_id, transaction)
 
-        self.__register_source(_obj, source_id, zone, sender)
-        transaction.add_fail(self.__unregister_source, _obj, source_id)
-
-        if use_transaction is None:
-            transaction.execute(True)
+            self.__register_source(_obj, source_id, zone, sender)
+            transaction.add_fail(self.__unregister_source, _obj, source_id)
 
         return _zone
 
@@ -631,7 +576,7 @@ class FirewallZone:
 
         return _zone
 
-    def remove_source(self, zone, source, use_transaction=None):
+    def remove_source(self, zone, source):
         self._fw.check_panic()
         if check_mac(source):
             source = source.upper()
@@ -647,19 +592,13 @@ class FirewallZone:
                 "remove_source(%s, %s): zos='%s'" % (zone, source, zos),
             )
 
-        if use_transaction is None:
-            transaction = self.new_transaction()
-        else:
-            transaction = use_transaction
+        with self.with_transaction() as transaction:
 
-        _obj = self._zones[_zone]
-        ipv = self.check_source(source)
-        source_id = self.__source_id(source)
-        transaction.add_post(self.__unregister_source, _obj, source_id)
-        self._source(False, _zone, ipv, source_id, transaction)
-
-        if use_transaction is None:
-            transaction.execute(True)
+            _obj = self._zones[_zone]
+            ipv = self.check_source(source)
+            source_id = self.__source_id(source)
+            transaction.add_post(self.__unregister_source, _obj, source_id)
+            self._source(False, _zone, ipv, source_id, transaction)
 
         return _zone
 
@@ -1130,11 +1069,11 @@ class FirewallZone:
         p_name = self.policy_name_from_zones(zone, "HOST")
         return self._fw.policy.list_source_ports(p_name)
 
-    def _rich_rule_to_policies(self, zone, rule):
+    def _get_policy_for_rich_rule(self, zone, rule):
         zone = self._fw.check_zone(zone)
         if isinstance(rule.action, Rich_Mark):
-            return [self.policy_name_from_zones(zone, "ANY")]
-        elif isinstance(
+            return self.policy_name_from_zones(zone, "ANY")
+        if isinstance(
             rule.element,
             (
                 Rich_Service,
@@ -1145,36 +1084,33 @@ class FirewallZone:
                 Rich_IcmpType,
             ),
         ):
-            return [self.policy_name_from_zones(zone, "HOST")]
-        elif isinstance(rule.element, Rich_ForwardPort):
-            return [self.policy_name_from_zones(zone, "ANY")]
-        elif isinstance(rule.element, Rich_Masquerade):
-            return [self.policy_name_from_zones("ANY", zone)]
-        elif isinstance(rule.element, Rich_Tcp_Mss_Clamp):
-            return [self.policy_name_from_zones(zone, "ANY")]
-        elif rule.element is None:
-            return [self.policy_name_from_zones(zone, "HOST")]
-        else:
-            raise FirewallError(
-                errors.INVALID_RULE,
-                "Rich rule type (%s) not handled." % (type(rule.element)),
-            )
+            return self.policy_name_from_zones(zone, "HOST")
+        if isinstance(rule.element, Rich_ForwardPort):
+            return self.policy_name_from_zones(zone, "ANY")
+        if isinstance(rule.element, Rich_Masquerade):
+            return self.policy_name_from_zones("ANY", zone)
+        if isinstance(rule.element, Rich_Tcp_Mss_Clamp):
+            return self.policy_name_from_zones(zone, "ANY")
+        if rule.element is None:
+            return self.policy_name_from_zones(zone, "HOST")
+        raise FirewallError(
+            errors.INVALID_RULE,
+            "Rich rule type (%s) not handled." % (type(rule.element)),
+        )
 
     def add_rule(self, zone, rule, timeout=0, sender=None):
-        for p_name in self._rich_rule_to_policies(zone, rule):
-            self._fw.policy.add_rule(p_name, rule, timeout, sender)
+        p_name = self._get_policy_for_rich_rule(zone, rule)
+        self._fw.policy.add_rule(p_name, rule, timeout, sender)
         return zone
 
     def remove_rule(self, zone, rule):
-        for p_name in self._rich_rule_to_policies(zone, rule):
-            self._fw.policy.remove_rule(p_name, rule)
+        p_name = self._get_policy_for_rich_rule(zone, rule)
+        self._fw.policy.remove_rule(p_name, rule)
         return zone
 
     def query_rule(self, zone, rule):
-        ret = True
-        for p_name in self._rich_rule_to_policies(zone, rule):
-            ret = ret and self._fw.policy.query_rule(p_name, rule)
-        return ret
+        p_name = self._get_policy_for_rich_rule(zone, rule)
+        return self._fw.policy.query_rule(p_name, rule)
 
     def list_rules(self, zone):
         zone = self._fw.check_zone(zone)
@@ -1328,7 +1264,7 @@ class FirewallZone:
                 )
                 transaction.add_rules(backend, rules)
 
-    def add_forward(self, zone, timeout=0, sender=None, use_transaction=None):
+    def add_forward(self, zone, timeout=0, sender=None):
         _zone = self._fw.check_zone(zone)
         self._fw.check_timeout(timeout)
         self._fw.check_panic()
@@ -1339,26 +1275,20 @@ class FirewallZone:
                 errors.ALREADY_ENABLED, "forward already enabled in '%s'" % _zone
             )
 
-        if use_transaction is None:
-            transaction = self.new_transaction()
-        else:
-            transaction = use_transaction
+        with self.with_transaction() as transaction:
 
-        if _obj.applied:
-            self._forward(True, _zone, transaction)
+            if _obj.applied:
+                self._forward(True, _zone, transaction)
 
-        self.__register_forward(_obj, timeout, sender)
-        transaction.add_fail(self.__unregister_forward, _obj)
-
-        if use_transaction is None:
-            transaction.execute(True)
+            self.__register_forward(_obj, timeout, sender)
+            transaction.add_fail(self.__unregister_forward, _obj)
 
         return _zone
 
     def __register_forward(self, _obj, timeout, sender):
         _obj.forward = True
 
-    def remove_forward(self, zone, use_transaction=None):
+    def remove_forward(self, zone):
         _zone = self._fw.check_zone(zone)
         self._fw.check_panic()
         _obj = self._zones[_zone]
@@ -1368,18 +1298,12 @@ class FirewallZone:
                 errors.NOT_ENABLED, "forward not enabled in '%s'" % _zone
             )
 
-        if use_transaction is None:
-            transaction = self.new_transaction()
-        else:
-            transaction = use_transaction
+        with self.with_transaction() as transaction:
 
-        if _obj.applied:
-            self._forward(False, _zone, transaction)
+            if _obj.applied:
+                self._forward(False, _zone, transaction)
 
-        transaction.add_post(self.__unregister_forward, _obj)
-
-        if use_transaction is None:
-            transaction.execute(True)
+            transaction.add_post(self.__unregister_forward, _obj)
 
         return _zone
 

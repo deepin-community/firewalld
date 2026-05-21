@@ -1,13 +1,13 @@
 '\" t
 .\"     Title: firewalld.policies
 .\"    Author: Thomas Woerner <twoerner@redhat.com>
-.\" Generator: DocBook XSL Stylesheets v1.79.1 <http://docbook.sf.net/>
+.\" Generator: DocBook XSL Stylesheets vsnapshot <http://docbook.sf.net/>
 .\"      Date: 
 .\"    Manual: firewalld.policies
-.\"    Source: firewalld 2.1.2
+.\"    Source: firewalld 2.3.1
 .\"  Language: English
 .\"
-.TH "FIREWALLD\&.POLICIES" "5" "" "firewalld 2.1.2" "firewalld.policies"
+.TH "FIREWALLD\&.POLICIES" "5" "" "firewalld 2.3.1" "firewalld.policies"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -32,7 +32,7 @@ firewalld.policies \- firewalld policies
 .SH "DESCRIPTION"
 .SS "What is a policy?"
 .PP
-A policy applies a set of rules to traffic flowing between between zones (see zones (see
+A policy applies a set of rules to traffic flowing between zones (see zones (see
 \fBfirewalld.zones\fR(5))\&. The policy affects traffic in a stateful unidirectional manner, e\&.g\&. zoneA to zoneB\&. This allows asynchronous filtering policies\&.
 .PP
 A policy\*(Aqs relationship to zones is defined by assigning a set of ingress zones and a set of egress zones\&. For example, if the set of ingress zones contains "public" and the set of egress zones contains "internal" then the policy will affect all traffic flowing from the "public" zone to the "internal" zone\&. However, since policies are unidirectional it will not apply to traffic flowing from "internal" to "public"\&. Note that the ingress set and egress set can contain multiple zones\&.
@@ -169,7 +169,7 @@ Policies are similar to zones in that they are an attachment point for firewalld
 .PP
 The main difference between policies and zones is that policies allow filtering in all directions: input, output, and forwarding\&. With a couple of exceptions zones only allow input filtering which is sufficient for an end station firewalling\&. However, for network level filtering or filtering on behalf of virtual machines and containers something more flexible, i\&.e\&. policies, are needed\&.
 .SH "SEE ALSO"
-\fBfirewall-applet\fR(1), \fBfirewalld\fR(1), \fBfirewall-cmd\fR(1), \fBfirewall-config\fR(1), \fBfirewalld.conf\fR(5), \fBfirewalld.direct\fR(5), \fBfirewalld.dbus\fR(5), \fBfirewalld.icmptype\fR(5), \fBfirewalld.lockdown-whitelist\fR(5), \fBfirewall-offline-cmd\fR(1), \fBfirewalld.richlanguage\fR(5), \fBfirewalld.service\fR(5), \fBfirewalld.zone\fR(5), \fBfirewalld.zones\fR(5), \fBfirewalld.policy\fR(5), \fBfirewalld.policies\fR(5), \fBfirewalld.ipset\fR(5), \fBfirewalld.helper\fR(5)
+\fBfirewall-applet\fR(1), \fBfirewalld\fR(1), \fBfirewall-cmd\fR(1), \fBfirewall-config\fR(1), \fBfirewalld.conf\fR(5), \fBfirewalld.direct\fR(5), \fBfirewalld.dbus\fR(5), \fBfirewalld.icmptype\fR(5), \fBfirewall-offline-cmd\fR(1), \fBfirewalld.richlanguage\fR(5), \fBfirewalld.service\fR(5), \fBfirewalld.zone\fR(5), \fBfirewalld.zones\fR(5), \fBfirewalld.policy\fR(5), \fBfirewalld.policies\fR(5), \fBfirewalld.ipset\fR(5), \fBfirewalld.helper\fR(5)
 .SH "NOTES"
 .PP
 firewalld home page:

@@ -1,3 +1,98 @@
+firewalld (2.3.1-1+deb13u1) trixie; urgency=medium
+
+  * fix(policy): use PK_ACTION_CONFIG for set{ZoneSettings2,PolicySettings}
+    This prevents local users from being able to modify runtime firewall state
+    without prior authentication if the desktop policy is active.
+    (CVE-2026-4948)
+
+ -- Michael Biebl <biebl@debian.org>  Mon, 04 May 2026 01:08:28 +0200
+
+firewalld (2.3.1-1) unstable; urgency=medium
+
+  * New upstream version 2.3.1
+  * Rebase patches
+
+ -- Michael Biebl <biebl@debian.org>  Sat, 26 Jul 2025 18:52:44 +0200
+
+firewalld (2.3.0-4) unstable; urgency=medium
+
+  * test(nftables): table owner: use grep instead of head.
+    Using `head -n 2` will cause head to terminate early while the prior
+    commands in the pipeline still have output. This will trigger SIGPIPE
+    and in some cases causes messages on stderr. Use grep to consume all the
+    output.
+    Patch cherry-picked from upstream Git.
+  * Revert "Run nftables_table_owner in a separate autopkgtest marked as flaky"
+    This should no longer be necessary with the fixes to
+    nftables_table_owner using grep instead of head.
+
+ -- Michael Biebl <biebl@debian.org>  Wed, 07 May 2025 18:40:14 +0200
+
+firewalld (2.3.0-3) unstable; urgency=medium
+
+  * Add dpkg file trigger for /usr/lib/firewald/{services,zones}
+    Automatically reload firewalld when files are installed into those
+    directories. (Closes: #1040783)
+
+ -- Michael Biebl <biebl@debian.org>  Sun, 13 Apr 2025 22:41:25 +0200
+
+firewalld (2.3.0-2) unstable; urgency=medium
+
+  * Remove obsolete conffile on upgrade.
+    Use maintscript to remove /etc/firewalld/lockdown-whitelist.xml on
+    upgrades. (Closes: #1100759)
+
+ -- Michael Biebl <biebl@debian.org>  Tue, 18 Mar 2025 11:45:30 +0100
+
+firewalld (2.3.0-1) unstable; urgency=medium
+
+  * New upstream version 2.3.0
+
+ -- Michael Biebl <biebl@debian.org>  Tue, 05 Nov 2024 19:11:26 +0100
+
+firewalld (2.2.3-2) unstable; urgency=medium
+
+  * Run nftables_table_owner in a separate autopkgtest marked as flaky.
+    The test appears to not pass reliably on debci. Whether this is a bug in
+    the test environment or the test itself is unclear at this moment.
+    We still want to run the test on debci so introduce an new autopkgtest
+    named standard-tests-flaky which runs nftables_table_owner separately.
+    Mitigates: #1083210
+
+ -- Michael Biebl <biebl@debian.org>  Tue, 22 Oct 2024 23:27:15 +0200
+
+firewalld (2.2.3-1) unstable; urgency=medium
+
+  * New upstream version 2.2.3
+  * Replace dependency on dbus with default-dbus-system-bus | dbus-system-bus.
+    This makes it easier to swap in alternative implementations like
+    dbus-broker. (Closes: #1083227)
+
+ -- Michael Biebl <biebl@debian.org>  Thu, 17 Oct 2024 22:52:35 +0200
+
+firewalld (2.2.1-1) unstable; urgency=medium
+
+  * New upstream version 2.2.1
+  * Rebase patches
+  * Remove obsolete migration code from pre-oldstable
+
+ -- Michael Biebl <biebl@debian.org>  Thu, 01 Aug 2024 22:00:06 +0200
+
+firewalld (2.2.0-1) unstable; urgency=medium
+
+  * New upstream version 2.2.0
+  * Rebase patches
+
+ -- Michael Biebl <biebl@debian.org>  Fri, 19 Jul 2024 20:29:37 +0200
+
+firewalld (2.1.2-2) unstable; urgency=medium
+
+  * test(functions): fix iptables normalization for opt field.
+    Patch cherry-picked from upstream Git. (Closes: #1073560)
+  * Enable standard Salsa CI
+
+ -- Michael Biebl <biebl@debian.org>  Thu, 04 Jul 2024 23:06:01 +0200
+
 firewalld (2.1.2-1) unstable; urgency=medium
 
   * New upstream version 2.1.2

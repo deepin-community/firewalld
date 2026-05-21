@@ -78,6 +78,7 @@ INVALID_POLICY = 140
 INVALID_LOG_PREFIX = 141
 INVALID_NFLOG_GROUP = 142
 INVALID_NFLOG_QUEUE = 143
+INVALID_SOURCE = 144
 
 MISSING_TABLE = 200
 MISSING_CHAIN = 201
@@ -135,3 +136,15 @@ FirewallError.errors = {
 FirewallError.codes = {
     FirewallError.errors[code]: code for code in FirewallError.errors
 }
+
+###############################################################################
+
+
+class BugError(Exception):
+    """Indicates that there is a bug in the code. You probably don't
+    want to catch this, but fix the bug."""
+
+    def __init__(self, msg=None):
+        if msg is None:
+            msg = "should not be reached"
+        super().__init__(f"BUG: {msg}")

@@ -737,6 +737,16 @@ class ip4tables:
         # nothing to do, they always exist
         return []
 
+    def _build_default_rules_dnat(self, chain):
+        dnat_rules = []
+        if self._fw._strict_forward_ports:
+            self.our_chains["filter"].add(f"{chain}_dnat")
+            dnat_rules.append(f"-N {chain}_dnat")
+            dnat_rules.append(f"-A {chain}_dnat -j %%REJECT%%")
+            dnat_rules.append(f"-A {chain} -m conntrack --ctstate DNAT -j {chain}_dnat")
+
+        return dnat_rules
+
     def build_default_rules(self, log_denied="off"):
         default_rules = {}
 
@@ -790,9 +800,14 @@ class ip4tables:
 
         default_rules["filter"] = []
         self.our_chains["filter"] = set()
+
         default_rules["filter"].append(
-            "-A INPUT -m conntrack --ctstate RELATED,ESTABLISHED,DNAT -j ACCEPT"
+            "-A INPUT -m conntrack --ctstate RELATED,ESTABLISHED{} -j ACCEPT".format(
+                "" if self._fw._strict_forward_ports else ",DNAT"
+            )
         )
+        default_rules["filter"].extend(self._build_default_rules_dnat("INPUT"))
+
         default_rules["filter"].append("-A INPUT -i lo -j ACCEPT")
         if log_denied != "off":
             default_rules["filter"].append(
@@ -814,8 +829,12 @@ class ip4tables:
         default_rules["filter"].append("-A INPUT -j %%REJECT%%")
 
         default_rules["filter"].append(
-            "-A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED,DNAT -j ACCEPT"
+            "-A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED{} -j ACCEPT".format(
+                "" if self._fw._strict_forward_ports else ",DNAT"
+            )
         )
+        default_rules["filter"].extend(self._build_default_rules_dnat("FORWARD"))
+
         default_rules["filter"].append("-A FORWARD -i lo -j ACCEPT")
         if log_denied != "off":
             default_rules["filter"].append(
@@ -836,9 +855,16 @@ class ip4tables:
             )
         default_rules["filter"].append("-A FORWARD -j %%REJECT%%")
 
+        default_rules["filter"] += ["-N OUTPUT_direct"]
+
+        default_rules["filter"].append(
+            "-A OUTPUT -m conntrack --ctstate RELATED,ESTABLISHED{} -j ACCEPT".format(
+                "" if self._fw._strict_forward_ports else ",DNAT"
+            )
+        )
+        default_rules["filter"].extend(self._build_default_rules_dnat("OUTPUT"))
+
         default_rules["filter"] += [
-            "-N OUTPUT_direct",
-            "-A OUTPUT -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT",
             "-A OUTPUT -o lo -j ACCEPT",
             "-A OUTPUT -j OUTPUT_direct",
         ]
@@ -1162,9 +1188,12 @@ class ip4tables:
         return rules
 
     def _rule_limit(self, limit):
-        if limit:
-            return ["-m", "limit", "--limit", limit.value]
-        return []
+        if not limit:
+            return []
+        s = ["-m", "limit", "--limit", limit.value]
+        if limit.burst:
+            s += ["--limit-burst", str(limit.burst)]
+        return s
 
     def _rich_rule_chain_suffix(self, rich_rule):
         if type(rich_rule.element) in [
@@ -1236,11 +1265,11 @@ class ip4tables:
         if isinstance(rich_rule.log, Rich_NFLog):
             rule += rule_fragment + ["-j", "NFLOG"]
             if rich_rule.log.group:
-                rule += ["--nflog-group", rich_rule.log.group]
+                rule += ["--nflog-group", str(rich_rule.log.group)]
             if rich_rule.log.prefix:
                 rule += ["--nflog-prefix", "%s" % rich_rule.log.prefix]
             if rich_rule.log.threshold:
-                rule += ["--nflog-threshold", rich_rule.log.threshold]
+                rule += ["--nflog-threshold", str(rich_rule.log.threshold)]
         else:
             rule += rule_fragment + ["-j", "LOG"]
             if rich_rule.log.prefix:
@@ -1467,7 +1496,7 @@ class ip4tables:
             rule_fragment += self._rich_rule_destination_fragment(rich_rule.destination)
             rule_fragment += self._rich_rule_source_fragment(rich_rule.source)
 
-        if tcp_mss_clamp_value == "pmtu" or tcp_mss_clamp_value is None:
+        if tcp_mss_clamp_value == "pmtu" or not tcp_mss_clamp_value:
             rule_fragment += ["-j", "TCPMSS", "--clamp-mss-to-pmtu"]
         else:
             rule_fragment += ["-j", "TCPMSS", "--set-mss", tcp_mss_clamp_value]
@@ -1599,6 +1628,7 @@ class ip4tables:
         _policy = self._fw.policy.policy_base_chain_name(
             policy, table, POLICY_CHAIN_PREFIX
         )
+        p_obj = self._fw.policy.get_policy(policy)
         add_del = {True: "-A", False: "-D"}[enable]
 
         to = ""
@@ -1634,9 +1664,33 @@ class ip4tables:
             + ["-j", "DNAT", "--to-destination", to]
         )
 
+        if self._fw._strict_forward_ports:
+            if "HOST" in p_obj.ingress_zones:
+                chain = "OUTPUT"
+            elif toaddr:
+                chain = "FORWARD"
+            else:
+                chain = "INPUT"
+            rules.append(
+                ["-t", "filter", "-I" if enable else "-D", f"{chain}_dnat"]
+                + [
+                    "-m",
+                    "conntrack",
+                    "--ctstate",
+                    "DNAT",
+                    "--ctdir",
+                    "ORIGINAL",
+                    "--ctorigdstport",
+                    portStr(port),
+                ]
+                + ["-j", "ACCEPT"]
+            )
+
         return rules
 
-    def build_policy_icmp_block_rules(self, enable, policy, ict, rich_rule=None):
+    def build_policy_icmp_block_rules(
+        self, enable, policy, ict, rich_rule=None, ipvs=None
+    ):
         table = "filter"
         _policy = self._fw.policy.policy_base_chain_name(
             policy, table, POLICY_CHAIN_PREFIX
@@ -1779,16 +1833,19 @@ class ip6tables(ip4tables):
 
     def build_rpfilter_rules(self, log_denied=False):
         rules = []
+        rpfilter_fragment = ["-m", "rpfilter", "--invert", "--validmark"]
+        if self._fw._ipv6_rpfilter == "loose":
+            rpfilter_fragment += ["--loose"]
+
         rules.append(
             [
                 "-I",
                 "PREROUTING",
                 "-t",
                 "mangle",
-                "-m",
-                "rpfilter",
-                "--invert",
-                "--validmark",
+            ]
+            + rpfilter_fragment
+            + [
                 "-j",
                 "DROP",
             ]
@@ -1800,10 +1857,9 @@ class ip6tables(ip4tables):
                     "PREROUTING",
                     "-t",
                     "mangle",
-                    "-m",
-                    "rpfilter",
-                    "--invert",
-                    "--validmark",
+                ]
+                + rpfilter_fragment
+                + [
                     "-j",
                     "LOG",
                     "--log-prefix",
@@ -1888,14 +1944,21 @@ class ip6tables(ip4tables):
                 )
 
         # Inject into FORWARD and OUTPUT chains
-        rules.append(["-t", "filter", "-I", "OUTPUT", "4", "-j", chain_name])
+        index = 4
+        if self._fw._strict_forward_ports:
+            index += 1
+        rules.append(["-t", "filter", "-I", "OUTPUT", str(index), "-j", chain_name])
+
+        index += 1
+        if self._fw.get_log_denied() != "off":
+            index += 1
         rules.append(
             [
                 "-t",
                 "filter",
                 "-I",
                 "FORWARD",
-                "6" if self._fw.get_log_denied() != "off" else "5",
+                str(index),
                 "-j",
                 chain_name,
             ]

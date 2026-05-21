@@ -24,7 +24,7 @@ Homepage: https://www.firewalld.org/
 Package: firewalld
 Architecture: all
 Pre-Depends: ${misc:Pre-Depends}
-Depends: dbus,
+Depends: default-dbus-system-bus | dbus-system-bus,
          gir1.2-glib-2.0,
          gir1.2-nm-1.0,
          polkitd,

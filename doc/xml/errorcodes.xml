@@ -70,6 +70,7 @@
 <row><entry>INVALID_LOG_PREFIX</entry><entry>141</entry></row>
 <row><entry>INVALID_NFLOG_GROUP</entry><entry>142</entry></row>
 <row><entry>INVALID_NFLOG_QUEUE</entry><entry>143</entry></row>
+<row><entry>INVALID_SOURCE</entry><entry>144</entry></row>
 <row><entry>MISSING_TABLE</entry><entry>200</entry></row>
 <row><entry>MISSING_CHAIN</entry><entry>201</entry></row>
 <row><entry>MISSING_PORT</entry><entry>202</entry></row>

@@ -1,4 +1,5 @@
 config/firewall-applet.desktop.in
+config/firewall-config.appdata.xml.in
 config/firewall-config.desktop.in
 config/icmptypes/address-unreachable.xml
 config/icmptypes/bad-header.xml
@@ -62,6 +63,7 @@ config/services/amqp.xml
 config/services/anno-1602.xml
 config/services/anno-1800.xml
 config/services/apcupsd.xml
+config/services/aseqnet.xml
 config/services/audit.xml
 config/services/ausweisapp2.xml
 config/services/bacula-client.xml
@@ -128,6 +130,8 @@ config/services/http.xml
 config/services/ident.xml
 config/services/imaps.xml
 config/services/imap.xml
+config/services/iperf2.xml
+config/services/iperf3.xml
 config/services/ipfs.xml
 config/services/ipp-client.xml
 config/services/ipp.xml
@@ -173,9 +177,11 @@ config/services/mdns.xml
 config/services/memcache.xml
 config/services/minecraft.xml
 config/services/minidlna.xml
+config/services/mndp.xml
 config/services/mongodb.xml
 config/services/mosh.xml
 config/services/mountd.xml
+config/services/mpd.xml
 config/services/mqtt-tls.xml
 config/services/mqtt.xml
 config/services/mssql.xml
@@ -217,12 +223,14 @@ config/services/pulseaudio.xml
 config/services/puppetmaster.xml
 config/services/quassel.xml
 config/services/radius.xml
+config/services/radsec.xml
 config/services/rdp.xml
 config/services/redis-sentinel.xml
 config/services/redis.xml
 config/services/RH-Satellite-6.xml
 config/services/RH-Satellite-6-capsule.xml
 config/services/rpc-bind.xml
+config/services/rootd.xml
 config/services/rquotad.xml
 config/services/rsh.xml
 config/services/rsyncd.xml
@@ -235,6 +243,7 @@ config/services/sane.xml
 config/services/settlers-history-collection.xml
 config/services/sips.xml
 config/services/sip.xml
+config/services/slimevr.xml
 config/services/slp.xml
 config/services/smtp-submission.xml
 config/services/smtps.xml
@@ -250,8 +259,11 @@ config/services/ssdp.xml
 config/services/ssh.xml
 config/services/statsrv.xml
 config/services/steam-streaming.xml
+config/services/steam-lan-transfer.xml
 config/services/stellaris.xml
 config/services/stronghold-crusader.xml
+config/services/stun.xml
+config/services/stuns.xml
 config/services/submission.xml
 config/services/supertuxkart.xml
 config/services/svdrp.xml
@@ -271,6 +283,8 @@ config/services/tile38.xml
 config/services/tinc.xml
 config/services/tor-socks.xml
 config/services/transmission-client.xml
+config/services/turn.xml
+config/services/turns.xml
 config/services/upnp-client.xml
 config/services/vdsm.xml
 config/services/vnc-server.xml
@@ -280,6 +294,7 @@ config/services/wbem-https.xml
 config/services/wbem-http.xml
 config/services/wireguard.xml
 config/services/ws-discovery-client.xml
+config/services/ws-discovery-host.xml
 config/services/ws-discovery-tcp.xml
 config/services/ws-discovery-udp.xml
 config/services/ws-discovery.xml
@@ -322,7 +337,6 @@ src/firewall/core/fw_icmptype.py
 src/firewall/core/fw_ifcfg.py
 src/firewall/core/fw_ipset.py
 src/firewall/core/fw_nm.py
-src/firewall/core/fw_policies.py
 src/firewall/core/fw_policy.py
 src/firewall/core/fw.py
 src/firewall/core/fw_service.py
@@ -340,7 +354,6 @@ src/firewall/core/io/ifcfg.py
 src/firewall/core/io/__init__.py
 src/firewall/core/io/io_object.py
 src/firewall/core/io/ipset.py
-src/firewall/core/io/lockdown_whitelist.py
 src/firewall/core/io/policy.py
 src/firewall/core/io/service.py
 src/firewall/core/io/zone.py

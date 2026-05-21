@@ -1,13 +1,13 @@
 '\" t
 .\"     Title: firewalld.zones
 .\"    Author: Thomas Woerner <twoerner@redhat.com>
-.\" Generator: DocBook XSL Stylesheets v1.79.1 <http://docbook.sf.net/>
+.\" Generator: DocBook XSL Stylesheets vsnapshot <http://docbook.sf.net/>
 .\"      Date: 
 .\"    Manual: firewalld.zones
-.\"    Source: firewalld 2.1.2
+.\"    Source: firewalld 2.3.1
 .\"  Language: English
 .\"
-.TH "FIREWALLD\&.ZONES" "5" "" "firewalld 2.1.2" "firewalld.zones"
+.TH "FIREWALLD\&.ZONES" "5" "" "firewalld 2.3.1" "firewalld.zones"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -214,7 +214,7 @@ For the addition or change of interfaces that are not under control of NetworkMa
 .PP
 Only for the removal of interfaces that are not under control of NetworkManager: firewalld is not trying to change the ZONE setting in the ifcfg file\&. This is needed to make sure that an ifdown of the interface will not result in a reset of the zone setting to the default zone\&. Only the zone binding is then removed in firewalld then\&.
 .SH "SEE ALSO"
-\fBfirewall-applet\fR(1), \fBfirewalld\fR(1), \fBfirewall-cmd\fR(1), \fBfirewall-config\fR(1), \fBfirewalld.conf\fR(5), \fBfirewalld.direct\fR(5), \fBfirewalld.dbus\fR(5), \fBfirewalld.icmptype\fR(5), \fBfirewalld.lockdown-whitelist\fR(5), \fBfirewall-offline-cmd\fR(1), \fBfirewalld.richlanguage\fR(5), \fBfirewalld.service\fR(5), \fBfirewalld.zone\fR(5), \fBfirewalld.zones\fR(5), \fBfirewalld.policy\fR(5), \fBfirewalld.policies\fR(5), \fBfirewalld.ipset\fR(5), \fBfirewalld.helper\fR(5)
+\fBfirewall-applet\fR(1), \fBfirewalld\fR(1), \fBfirewall-cmd\fR(1), \fBfirewall-config\fR(1), \fBfirewalld.conf\fR(5), \fBfirewalld.direct\fR(5), \fBfirewalld.dbus\fR(5), \fBfirewalld.icmptype\fR(5), \fBfirewall-offline-cmd\fR(1), \fBfirewalld.richlanguage\fR(5), \fBfirewalld.service\fR(5), \fBfirewalld.zone\fR(5), \fBfirewalld.zones\fR(5), \fBfirewalld.policy\fR(5), \fBfirewalld.policies\fR(5), \fBfirewalld.ipset\fR(5), \fBfirewalld.helper\fR(5)
 .SH "NOTES"
 .PP
 firewalld home page:

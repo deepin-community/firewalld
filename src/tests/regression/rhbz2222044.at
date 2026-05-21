@@ -2,11 +2,16 @@ FWD_START_TEST([duplicate rules after restart])
 AT_KEYWORDS(rhbz2222044)
 AT_SKIP_IF([! NS_CMD([command -v wc >/dev/null 2>&1])])
 
+dnl Disable for this test because CI do not support table owner. It's very new
+dnl in nftables.
+AT_CHECK([sed -i 's/^NftablesTableOwner=.*/NftablesTableOwner=no/' ./firewalld.conf])
+FWD_RELOAD()
+
 dnl rules have not changed so rule count should not change
 m4_define([check_rule_count], [
 m4_if(nftables, FIREWALL_BACKEND, [
 NS_CHECK([nft list table inet firewalld | wc -l], 0, [dnl
-331
+332
 ])
 ], [ dnl iptables
 NS_CHECK([iptables-save | wc -l], 0, [dnl

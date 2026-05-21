@@ -1,4 +1,4 @@
-#!/opt/hostedtoolcache/Python/3.7.17/x64/bin/python
+#!/opt/hostedtoolcache/Python/3.8.18/x64/bin/python
 # SPDX-License-Identifier: GPL-2.0-or-later
 #
 # Copyright (C) 2010-2023 Red Hat, Inc.
@@ -450,13 +450,16 @@ class TrayApplet(QtWidgets.QSystemTrayIcon):
         self.name = _("Firewall Applet")
         self.prog = "firewall-applet"
         self.icon_name = "firewall-applet"
+        self.normal_icon = QtGui.QIcon.fromTheme(self.icon_name)
         self.icons = {
-            "normal": QtGui.QIcon.fromTheme(self.icon_name),
+            "normal": self.normal_icon,
             "error": QtGui.QIcon.fromTheme(self.icon_name + "-error"),
             "panic": QtGui.QIcon.fromTheme(self.icon_name + "-panic"),
-            "normal-shields_up": QtGui.QIcon.fromTheme(self.icon_name + "-shields_up"),
+            "normal-shields_up": QtGui.QIcon.fromTheme(
+                self.icon_name + "-shields_up", self.normal_icon
+            ),
             "normal-shields_down": QtGui.QIcon.fromTheme(
-                self.icon_name + "-shields_down"
+                self.icon_name + "-shields_down", self.normal_icon
             ),
         }
         self.timer = None

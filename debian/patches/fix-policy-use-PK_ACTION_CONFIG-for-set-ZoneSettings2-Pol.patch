@@ -1,0 +1,34 @@
+From: Sizhe Zhao <prc.zhao@outlook.com>
+Date: Tue, 31 Mar 2026 20:46:50 +0800
+Subject: fix(policy): use PK_ACTION_CONFIG for
+ set{ZoneSettings2,PolicySettings}
+
+Reference: https://access.redhat.com/security/cve/cve-2026-4948
+(cherry picked from commit 5fb3914ad830feff6cb2b0670457c60a323c6c6c)
+(cherry picked from commit 8cb2dedc0ec7e177c36d331c449f189c11a1d23d)
+---
+ src/firewall/server/firewalld.py | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/firewall/server/firewalld.py b/src/firewall/server/firewalld.py
+index 6280252..9f969d8 100644
+--- a/src/firewall/server/firewalld.py
++++ b/src/firewall/server/firewalld.py
+@@ -938,7 +938,7 @@ class FirewallD(DbusServiceObject):
+         log.debug1("getZoneSettings2(%s)", zone)
+         return self.fw.zone.get_config_with_settings_dict(zone)
+ 
+-    @dbus_polkit_require_auth(config.dbus.PK_ACTION_CONFIG_INFO)
++    @dbus_polkit_require_auth(config.dbus.PK_ACTION_CONFIG)
+     @dbus_service_method(config.dbus.DBUS_INTERFACE_ZONE, in_signature="sa{sv}")
+     @dbus_handle_exceptions
+     def setZoneSettings2(self, zone, settings, sender=None):
+@@ -965,7 +965,7 @@ class FirewallD(DbusServiceObject):
+         log.debug1("policy.getPolicySettings(%s)", policy)
+         return self.fw.policy.get_config_with_settings_dict(policy)
+ 
+-    @dbus_polkit_require_auth(config.dbus.PK_ACTION_CONFIG_INFO)
++    @dbus_polkit_require_auth(config.dbus.PK_ACTION_CONFIG)
+     @dbus_service_method(config.dbus.DBUS_INTERFACE_POLICY, in_signature="sa{sv}")
+     @dbus_handle_exceptions
+     def setPolicySettings(self, policy, settings, sender=None):

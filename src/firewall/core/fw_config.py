@@ -29,7 +29,7 @@ class FirewallConfig:
         self.__init_vars()
 
     def __repr__(self):
-        return "%s(%r, %r, %r, %r, %r, %r, %r, %r, %r, %r, %r, %r, %r, %r, %r)" % (
+        return "%s(%r, %r, %r, %r, %r, %r, %r, %r, %r, %r, %r, %r, %r, %r)" % (
             self.__class__,
             self._ipsets,
             self._icmptypes,
@@ -44,7 +44,6 @@ class FirewallConfig:
             self._builtin_helpers,
             self._builtin_policy_objects,
             self._firewalld_conf,
-            self._policies,
             self._direct,
         )
 
@@ -62,7 +61,6 @@ class FirewallConfig:
         self._builtin_helpers = {}
         self._builtin_policy_objects = {}
         self._firewalld_conf = None
-        self._policies = None
         self._direct = None
 
     def cleanup(self):
@@ -105,11 +103,6 @@ class FirewallConfig:
             self._firewalld_conf.cleanup()
             del self._firewalld_conf
             self._firewalld_conf = None
-
-        if self._policies:
-            self._policies.cleanup()
-            del self._policies
-            self._policies = None
 
         if self._direct:
             self._direct.cleanup()
@@ -163,14 +156,6 @@ class FirewallConfig:
             for name, io_obj in io_objs.items():
                 io_obj.check_config_dict(io_obj.export_config_dict(), all_io_objects)
 
-    # access check
-
-    def lockdown_enabled(self):
-        return self._fw.policies.query_lockdown()
-
-    def access_check(self, key, value):
-        return self._fw.policies.access_check(key, value)
-
     # firewalld_conf
 
     def set_firewalld_conf(self, conf):
@@ -207,20 +192,6 @@ class FirewallConfig:
                 del io_obj_dict[obj_name]
         self._firewalld_conf.set_defaults()
         self._firewalld_conf.write()
-
-    # policies
-
-    def set_policies(self, policies):
-        self._policies = policies
-
-    def get_policies(self):
-        return self._policies
-
-    def update_lockdown_whitelist(self):
-        if not os.path.exists(config.LOCKDOWN_WHITELIST):
-            self._policies.lockdown_whitelist.cleanup()
-        else:
-            self._policies.lockdown_whitelist.read()
 
     # direct
 
@@ -623,27 +594,13 @@ class FirewallConfig:
         return self._builtin_services[obj.name]
 
     def get_service_config(self, obj):
-        conf_dict = obj.export_config_dict()
-        conf_list = []
-        for i in range(8):  # tuple based dbus API has 8 elements
-            if obj.IMPORT_EXPORT_STRUCTURE[i][0] not in conf_dict:
-                # old API needs the empty elements as well. Grab it from the
-                # object otherwise we don't know the type.
-                conf_list.append(
-                    copy.deepcopy(getattr(obj, obj.IMPORT_EXPORT_STRUCTURE[i][0]))
-                )
-            else:
-                conf_list.append(conf_dict[obj.IMPORT_EXPORT_STRUCTURE[i][0]])
-        return tuple(conf_list)
+        return obj.export_config_tuple(length=8)
 
     def get_service_config_dict(self, obj):
         return obj.export_config_dict()
 
     def set_service_config(self, obj, conf):
-        conf_dict = {}
-        for i, value in enumerate(conf):
-            conf_dict[obj.IMPORT_EXPORT_STRUCTURE[i][0]] = value
-
+        conf_dict = obj.get_dict_from_tuple(conf)
         return self.set_service_config_dict(obj, conf_dict)
 
     def set_service_config_dict(self, obj, conf):
@@ -664,10 +621,9 @@ class FirewallConfig:
         if name in self._services or name in self._builtin_services:
             raise FirewallError(errors.NAME_CONFLICT, "new_service(): '%s'" % name)
 
-        conf_dict = {}
-        for i, value in enumerate(conf):
-            conf_dict[Service.IMPORT_EXPORT_STRUCTURE[i][0]] = value
-
+        conf_dict = IO_Object.get_dict_from_tuple_static(
+            Service.IMPORT_EXPORT_STRUCTURE, conf
+        )
         return self.new_service_dict(name, conf_dict)
 
     def new_service_dict(self, name, conf):
@@ -832,27 +788,13 @@ class FirewallConfig:
         return self._builtin_zones[obj.name]
 
     def get_zone_config(self, obj):
-        conf_dict = obj.export_config_dict()
-        conf_list = []
-        for i in range(16):  # tuple based dbus API has 16 elements
-            if obj.IMPORT_EXPORT_STRUCTURE[i][0] not in conf_dict:
-                # old API needs the empty elements as well. Grab it from the
-                # object otherwise we don't know the type.
-                conf_list.append(
-                    copy.deepcopy(getattr(obj, obj.IMPORT_EXPORT_STRUCTURE[i][0]))
-                )
-            else:
-                conf_list.append(conf_dict[obj.IMPORT_EXPORT_STRUCTURE[i][0]])
-        return tuple(conf_list)
+        return obj.export_config_tuple(length=16)
 
     def get_zone_config_dict(self, obj):
         return obj.export_config_dict()
 
     def set_zone_config(self, obj, conf):
-        conf_dict = {}
-        for i, value in enumerate(conf):
-            conf_dict[obj.IMPORT_EXPORT_STRUCTURE[i][0]] = value
-
+        conf_dict = obj.get_dict_from_tuple(conf)
         return self.set_zone_config_dict(obj, conf_dict)
 
     def set_zone_config_dict(self, obj, conf):
@@ -873,10 +815,9 @@ class FirewallConfig:
         if name in self._zones or name in self._builtin_zones:
             raise FirewallError(errors.NAME_CONFLICT, "new_zone(): '%s'" % name)
 
-        conf_dict = {}
-        for i, value in enumerate(conf):
-            conf_dict[Zone.IMPORT_EXPORT_STRUCTURE[i][0]] = value
-
+        conf_dict = IO_Object.get_dict_from_tuple_static(
+            Zone.IMPORT_EXPORT_STRUCTURE, conf
+        )
         return self.new_zone_dict(name, conf_dict)
 
     def new_zone_dict(self, name, conf):

@@ -9,7 +9,7 @@ m4_define([FWD_STOP_FIREWALLD], [
 ])
 
 m4_define([FWD_START_FIREWALLD], [
-    FIREWALLD_ARGS="--nofork --nopid --log-file ./firewalld.log --system-config ./"
+    FIREWALLD_ARGS="--nofork --nopid --log-file ./firewalld.log --log-target file --system-config ./"
     dnl if testsuite ran with debug flag, add debug output
     ${at_debug_p} && FIREWALLD_ARGS="--debug=9 ${FIREWALLD_ARGS}"
     if test "x${FIREWALLD_DEFAULT_CONFIG}" != x ; then
@@ -116,6 +116,7 @@ m4_define([FWD_START_TEST], [
     test -z "$IP6TABLES" && export IP6TABLES="ip6tables"
     test -z "$IP6TABLES_RESTORE" && export IP6TABLES_RESTORE="ip6tables-restore"
     test -z "$IPSET" && export IPSET="ipset"
+    test -z "$PODMAN" && export PODMAN="podman"
 
     dnl We test some unicode strings and autotest overrides LC_ALL=C, so set it
     dnl again for every test.
@@ -414,10 +415,11 @@ m4_define([IPXTABLES_LIST_RULES_NORMALIZE], [dnl
         -e ['s/^\([-a-zA-Z0-9_]\+\)[ ]icmpv6/\1 58 /g'] dnl
         -e ['s/^\([-a-zA-Z0-9_]\+\)[ ]icmp/\1 1/g'] dnl
         -e ['s/^\([-a-zA-Z0-9_]\+\)[ ]sctp/\1 132/g'] dnl
+        -e ['s/^\([-a-zA-Z0-9_]\+\)[ ]dccp/\1 33/g'] dnl
     dnl commit 6e41c2d8747b ("iptables: xshared: Output '--' in the opt field
     dnl in ipv6's fake mode") added "--" to the output of ip6tables. This regex
     dnl adds the "--" for older ip6tables versions.
-        -e ['s/^\([-a-zA-Z0-9_]\+\)[ ]\([^ ]*\)[ ][-]\?[-]\?[ ]\?/\1 \2 -- /g'] dnl
+        -e ['s/^\([-a-zA-Z0-9_]\+\)[ ]\+\([^ ]*\)[ ]\+[-]\?[-]\?[ ]\?/\1 \2 -- /g'] dnl
 ])
 
 m4_define([IPTABLES_LIST_RULES_NORMALIZE], [dnl
@@ -785,5 +787,20 @@ m4_define([SKIP_IF_FW_IN_CONTAINER_WITH_NFTABLES], [
         dnl certain root permissions or increase systemwide buffer sizes. Try to
         dnl `unset FW_IN_CONTAINER` and re-run the test.
         SKIP_IF_FW_IN_CONTAINER
+    ])
+])
+
+m4_define([CHECK_NFTABLES_FIB], [
+    m4_if(nftables, FIREWALL_BACKEND, [
+        IF_HOST_SUPPORTS_NFT_FIB([], [AT_SKIP_IF([:])])
+    ])
+])
+
+m4_define([CHECK_NFTABLES_FIB_IN_FORWARD], [
+    m4_if(nftables, FIREWALL_BACKEND, [
+        NS_CHECK([nft add table inet firewalld_check])
+        NS_CHECK([nft add chain inet firewalld_check foobar { type filter hook forward priority 0 \; }])
+        AT_SKIP_IF([! NS_CMD([nft add rule inet firewalld_check foobar meta nfproto ipv6 fib saddr . mark . iif oif missing drop >/dev/null 2>&1])])
+        NS_CHECK([nft delete table inet firewalld_check])
     ])
 ])

@@ -89,42 +89,89 @@ def dbus_handle_exceptions(func):
     return _impl
 
 
-def dbus_service_method(*args, **kwargs):
-    """Add sender argument for D-Bus"""
-    kwargs.setdefault("sender_keyword", "sender")
-    return dbus.service.method(*args, **kwargs)
+def dbus_service_method(
+    dbus_interface,
+    in_signature="",
+    out_signature="",
+    *args,
+    is_deprecated=False,
+    sender_keyword="sender",
+    **kwargs,
+):
+    def decorator(func):
+        if is_deprecated:
+            dbus_service_method_deprecated.register(dbus_interface, func.__name__)
+
+        dbus_decorator = dbus.service.method(
+            dbus_interface,
+            in_signature=in_signature,
+            out_signature=out_signature,
+            *args,
+            sender_keyword=sender_keyword,
+            **kwargs,
+        )
+        return dbus_decorator(func)
+
+    return decorator
 
 
-class dbus_service_method_deprecated:
+def dbus_service_signal(
+    dbus_interface,
+    signature="",
+    *args,
+    is_deprecated=False,
+    **kwargs,
+):
+    def decorator(func):
+        if is_deprecated:
+            dbus_service_signal_deprecated.register(dbus_interface, func.__name__)
+
+        dbus_decorator = dbus.service.signal(
+            dbus_interface,
+            *args,
+            signature=signature,
+            **kwargs,
+        )
+        return dbus_decorator(func)
+
+    return decorator
+
+
+class dbus_service_deprecated:
+    """Decorator that maintains a list of deprecated methods in dbus
+    interfaces.
+    """
+
+    def __init__(self, interface):
+        self.interface = interface
+
+    def __call__(self, func):
+        self.register(self.interface, func.__name__)
+        return func
+
+    @classmethod
+    def register(cls, interface, name):
+        s = cls.deprecated.get(interface)
+        if s is None:
+            s = set()
+            cls.deprecated[interface] = s
+        s.add(name)
+
+
+class dbus_service_method_deprecated(dbus_service_deprecated):
     """Decorator that maintains a list of deprecated methods in dbus
     interfaces.
     """
 
     deprecated = {}
 
-    def __init__(self, interface=None):
-        self.interface = interface
-        if self.interface:
-            if self.interface not in self.deprecated:
-                self.deprecated[self.interface] = set()
 
-    def __call__(self, func):
-        if self.interface:
-            self.deprecated[self.interface].add(func.__name__)
-
-        @functools.wraps(func)
-        def _impl(*args, **kwargs):
-            return func(*args, **kwargs)
-
-        return _impl
-
-
-class dbus_service_signal_deprecated(dbus_service_method_deprecated):
+class dbus_service_signal_deprecated(dbus_service_deprecated):
     """Decorator that maintains a list of deprecated signals in dbus
     interfaces.
     """
 
-    pass
+    deprecated = {}
 
 
 class dbus_polkit_require_auth:
@@ -185,7 +232,12 @@ class dbus_polkit_require_auth:
                 # use polkit if it's available
                 if type(self)._interface_polkit:
                     (result, _, _) = type(self)._interface_polkit.CheckAuthorization(
-                        ("system-bus-name", {"name": sender}), action_id, {}, 1, ""
+                        ("system-bus-name", {"name": sender}),
+                        action_id,
+                        {},
+                        1,
+                        "",
+                        timeout=60,
                     )
                     if not result:
                         raise NotAuthorizedException(action_id, "polkit")

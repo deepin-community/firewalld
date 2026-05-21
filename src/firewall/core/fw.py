@@ -23,7 +23,6 @@ from firewall.core.fw_service import FirewallService
 from firewall.core.fw_zone import FirewallZone
 from firewall.core.fw_direct import FirewallDirect
 from firewall.core.fw_config import FirewallConfig
-from firewall.core.fw_policies import FirewallPolicies
 from firewall.core.fw_ipset import FirewallIPSet
 from firewall.core.fw_transaction import FirewallTransaction
 from firewall.core.fw_helper import FirewallHelper
@@ -70,7 +69,6 @@ class Firewall:
         self.zone = FirewallZone(self)
         self.direct = FirewallDirect(self)
         self.config = FirewallConfig(self)
-        self.policies = FirewallPolicies()
         self.ipset = FirewallIPSet(self)
         self.helper = FirewallHelper(self)
         self.policy = FirewallPolicy(self)
@@ -90,7 +88,7 @@ class Firewall:
             self._marks,
             self.cleanup_on_exit,
             self.cleanup_modules_on_exit,
-            self.ipv6_rpfilter_enabled,
+            self._ipv6_rpfilter,
             self.ipset_enabled,
             self._individual_calls,
             self._log_denied,
@@ -107,7 +105,7 @@ class Firewall:
         # fallback settings will be overloaded by firewalld.conf
         self.cleanup_on_exit = config.FALLBACK_CLEANUP_ON_EXIT
         self.cleanup_modules_on_exit = config.FALLBACK_CLEANUP_MODULES_ON_EXIT
-        self.ipv6_rpfilter_enabled = config.FALLBACK_IPV6_RPFILTER
+        self._ipv6_rpfilter = config.FALLBACK_IPV6_RPFILTER
         self._individual_calls = config.FALLBACK_INDIVIDUAL_CALLS
         self._log_denied = config.FALLBACK_LOG_DENIED
         self._firewall_backend = config.FALLBACK_FIREWALL_BACKEND
@@ -116,6 +114,8 @@ class Firewall:
         self._allow_zone_drifting = config.FALLBACK_ALLOW_ZONE_DRIFTING
         self._nftables_flowtable = config.FALLBACK_NFTABLES_FLOWTABLE
         self._nftables_counters = config.FALLBACK_NFTABLES_COUNTERS
+        self._nftables_table_owner = config.FALLBACK_NFTABLES_TABLE_OWNER
+        self._strict_forward_ports = config.FALLBACK_STRICT_FORWARD_PORTS
 
         if self._offline:
             self.ip4tables_enabled = False
@@ -133,6 +133,25 @@ class Firewall:
             self.ipset_enabled = True
             self.ipset_supported_types = IPSET_TYPES
             self.nftables_enabled = True
+
+    def with_transaction(self, use_transaction=None, *, enable=True):
+        class TransactionContext:
+            def __init__(ctxself, self, use_transaction, enable):
+                ctxself.is_temporary = use_transaction is None
+                ctxself._enable = enable
+                if ctxself.is_temporary:
+                    ctxself.transaction = FirewallTransaction(self)
+                else:
+                    ctxself.transaction = use_transaction
+
+            def __enter__(ctxself):
+                return ctxself.transaction
+
+            def __exit__(ctxself, exc_type, exc_value, traceback):
+                if exc_type is None and ctxself.is_temporary:
+                    ctxself.transaction.execute(ctxself._enable)
+
+        return TransactionContext(self, use_transaction, enable)
 
     def get_all_io_objects_dict(self):
         """
@@ -253,22 +272,6 @@ class Firewall:
             raise FirewallError(errors.UNKNOWN_ERROR, "No IPv4 and IPv6 firewall.")
 
     def _start_probe_backends(self):
-        try:
-            self.ipset_backend.set_list()
-        except ValueError:
-            if self.nftables_enabled:
-                log.info1(
-                    "ipset not usable, disabling ipset usage in firewall. Other set backends (nftables) remain usable."
-                )
-            else:
-                log.warning("ipset not usable, disabling ipset usage in firewall.")
-                self.ipset_supported_types = []
-            # ipset is not usable
-            self.ipset_enabled = False
-        else:
-            # ipset is usable, get all supported types
-            self.ipset_supported_types = self.ipset_backend.set_supported_types()
-
         self.ip4tables_backend.fill_exists()
         if not self.ip4tables_backend.restore_command_exists:
             if self.ip4tables_backend.command_exists:
@@ -359,6 +362,17 @@ class Firewall:
                 "option, will therefore not be used"
             )
 
+        self.nftables_backend.probe_support()
+
+        if (
+            self._nftables_table_owner
+            and not self.nftables_backend.supports_table_owner
+        ):
+            log.info1(
+                "Configuration has NftablesTableOwner=True, but it's "
+                "not supported by nftables. Table ownership will be disabled."
+            )
+
     def _start_load_firewalld_conf(self):
         # load firewalld config
         log.debug1("Loading firewalld config file '%s'", config.FIREWALLD_CONF)
@@ -385,27 +399,20 @@ class Firewall:
                     "CleanupModulesOnExit is set to '%s'", self.cleanup_modules_on_exit
                 )
 
-            if self._firewalld_conf.get("Lockdown"):
-                value = self._firewalld_conf.get("Lockdown")
-                if value is not None and value.lower() in ["yes", "true"]:
-                    log.debug1("Lockdown is enabled")
-                    try:
-                        self.policies.enable_lockdown()
-                    except FirewallError:
-                        # already enabled, this is probably reload
-                        pass
-
             if self._firewalld_conf.get("IPv6_rpfilter"):
                 value = self._firewalld_conf.get("IPv6_rpfilter")
                 if value is not None:
                     if value.lower() in ["no", "false"]:
-                        self.ipv6_rpfilter_enabled = False
-                    if value.lower() in ["yes", "true"]:
-                        self.ipv6_rpfilter_enabled = True
-            if self.ipv6_rpfilter_enabled:
-                log.debug1("IPv6 rpfilter is enabled")
-            else:
-                log.debug1("IPV6 rpfilter is disabled")
+                        self._ipv6_rpfilter = "no"
+                    elif value.lower() in ["yes", "true", "strict"]:
+                        self._ipv6_rpfilter = "strict"
+                    elif value.lower() in ["loose"]:
+                        self._ipv6_rpfilter = "loose"
+                    elif value.lower() in ["loose-forward"]:
+                        self._ipv6_rpfilter = "loose-forward"
+                    elif value.lower() in ["strict-forward"]:
+                        self._ipv6_rpfilter = "strict-forward"
+                log.debug1(f"IPv6_rpfilter is set to '{self._ipv6_rpfilter}'")
 
             if self._firewalld_conf.get("IndividualCalls"):
                 value = self._firewalld_conf.get("IndividualCalls")
@@ -453,29 +460,27 @@ class Firewall:
                     self._nftables_counters = True
                 log.debug1("NftablesCounters is set to '%s'", self._nftables_counters)
 
-        self.config.set_firewalld_conf(copy.deepcopy(self._firewalld_conf))
-
-    def _start_load_lockdown_whitelist(self):
-        # load lockdown whitelist
-        log.debug1("Loading lockdown whitelist")
-        try:
-            self.policies.lockdown_whitelist.read()
-        except Exception as msg:
-            if self.policies.query_lockdown():
-                log.error(
-                    "Failed to load lockdown whitelist '%s': %s",
-                    self.policies.lockdown_whitelist.filename,
-                    msg,
-                )
-            else:
+            if self._firewalld_conf.get("NftablesTableOwner"):
+                value = self._firewalld_conf.get("NftablesTableOwner")
+                if value.lower() in ["no", "false"]:
+                    self._nftables_table_owner = False
+                else:
+                    self._nftables_table_owner = True
                 log.debug1(
-                    "Failed to load lockdown whitelist '%s': %s",
-                    self.policies.lockdown_whitelist.filename,
-                    msg,
+                    "NftablesTableOwner is set to '%s'", self._nftables_table_owner
                 )
 
-        # copy policies to config interface
-        self.config.set_policies(copy.deepcopy(self.policies))
+            if self._firewalld_conf.get("StrictForwardPorts"):
+                value = self._firewalld_conf.get("StrictForwardPorts")
+                if value.lower() in ["no", "false"]:
+                    self._strict_forward_ports = False
+                else:
+                    self._strict_forward_ports = True
+                log.debug1(
+                    "StrictForwardPorts is set to '%s'", self._strict_forward_ports
+                )
+
+        self.config.set_firewalld_conf(copy.deepcopy(self._firewalld_conf))
 
     def _start_load_stock_config(self):
         self._loader_ipsets(config.FIREWALLD_IPSETS)
@@ -557,73 +562,64 @@ class Firewall:
         self.config.set_direct(obj)
 
     def _start_apply_objects(self, reload=False, complete_reload=False):
-        transaction = FirewallTransaction(self)
+        with self.with_transaction() as transaction:
 
-        if not reload:
-            self.flush(use_transaction=transaction)
+            if not reload:
+                self.flush(use_transaction=transaction)
 
-        # If modules need to be unloaded in complete reload or if there are
-        # ipsets to get applied, limit the transaction to flush.
-        #
-        # Future optimization for the ipset case in reload: The transaction
-        # only needs to be split here if there are conflicting ipset types in
-        # exsting ipsets and the configuration in firewalld.
-        if (reload and complete_reload) or (
-            self.ipset.backends() and self.ipset.has_ipsets()
-        ):
+            # If modules need to be unloaded in complete reload or if there are
+            # ipsets to get applied, limit the transaction to flush.
+            #
+            # Future optimization for the ipset case in reload: The transaction
+            # only needs to be split here if there are conflicting ipset types in
+            # exsting ipsets and the configuration in firewalld.
+            if (reload and complete_reload) or (
+                self.ipset.backends() and self.ipset.has_ipsets()
+            ):
+                transaction.execute(True)
+
+            # complete reload: unload modules also
+            if reload and complete_reload:
+                log.debug1("Unloading firewall modules")
+                self.modules_backend.unload_firewall_modules()
+
+            self.apply_default_tables(transaction)
             transaction.execute(True)
-            transaction.clear()
 
-        # complete reload: unload modules also
-        if reload and complete_reload:
-            log.debug1("Unloading firewall modules")
-            self.modules_backend.unload_firewall_modules()
+            # apply settings for loaded ipsets while reloading here
+            if (self.ipset.backends()) and self.ipset.has_ipsets():
+                log.debug1("Applying ipsets")
+                self.ipset.apply_ipsets()
 
-        self.apply_default_tables(use_transaction=transaction)
-        transaction.execute(True)
-        transaction.clear()
+            log.debug1("Applying default rule set")
+            self.apply_default_rules(transaction)
 
-        # apply settings for loaded ipsets while reloading here
-        if (self.ipset.backends()) and self.ipset.has_ipsets():
-            log.debug1("Applying ipsets")
-            self.ipset.apply_ipsets()
+            log.debug1("Applying default zone")
+            self.zone.apply_zone_settings(self._default_zone, transaction)
+            self.zone._interface(True, self._default_zone, "+", transaction)
 
-        log.debug1("Applying default rule set")
-        self.apply_default_rules(use_transaction=transaction)
+            log.debug1("Applying used zones")
+            self.zone.apply_zones(transaction)
 
-        log.debug1("Applying default zone")
-        self.zone.apply_zone_settings(self._default_zone, transaction)
-        self.zone._interface(True, self._default_zone, "+", transaction)
-
-        log.debug1("Applying used zones")
-        self.zone.apply_zones(use_transaction=transaction)
-
-        log.debug1("Applying used policies")
-        self.policy.apply_policies(use_transaction=transaction)
-
-        transaction.execute(True)
-        transaction.clear()
+            log.debug1("Applying used policies")
+            self.policy.apply_policies(transaction)
 
     def _start_apply_direct_rules(self):
-        transaction = FirewallTransaction(self)
+        with self.with_transaction() as transaction:
 
-        # apply direct chains, rules and passthrough rules
-        if self.direct.has_configuration():
-            log.debug1("Applying direct chains rules and passthrough rules")
-            self.direct.apply_direct(transaction)
+            # apply direct chains, rules and passthrough rules
+            if self.direct.has_configuration():
+                log.debug1("Applying direct chains rules and passthrough rules")
+                self.direct.apply_direct(transaction)
 
-            # since direct rules are easy to make syntax errors lets highlight
-            # the cause if the transaction fails.
-            try:
-                transaction.execute(True)
-                transaction.clear()
-            except FirewallError as e:
-                raise FirewallError(e.code, "Direct: %s" % (e.msg if e.msg else ""))
-            except Exception:
-                raise
-
-        transaction.execute(True)
-        transaction.clear()
+                # since direct rules are easy to make syntax errors lets highlight
+                # the cause if the transaction fails.
+                try:
+                    transaction.execute(True)
+                except FirewallError as e:
+                    raise FirewallError(e.code, "Direct: %s" % (e.msg if e.msg else ""))
+                except Exception:
+                    raise
 
     def _start_check(self):
         # check minimum required zones
@@ -668,7 +664,6 @@ class Firewall:
 
     def _start(self, reload=False, complete_reload=False):
         self._start_load_firewalld_conf()
-        self._start_load_lockdown_whitelist()
 
         self._select_firewall_backend(self._firewall_backend)
 
@@ -701,7 +696,6 @@ class Firewall:
         """
         This is basically _start() with at least the following differences:
             - built-in defaults for firewalld.conf
-            - no lockdown list
             - no user config (/etc/firewalld)
             - no direct rules
         """
@@ -711,15 +705,11 @@ class Firewall:
 
         self._select_firewall_backend(self._firewall_backend)
 
-        if not self._offline:
-            self._start_probe_backends()
+        self._start_probe_backends()
 
         self._start_load_stock_config()
         self._start_copy_config_to_runtime()
         self._start_check()
-
-        if self._offline:
-            return
 
         self._start_apply_objects(reload=reload, complete_reload=complete_reload)
 
@@ -727,6 +717,9 @@ class Firewall:
         try:
             self._start()
         except Exception as original_ex:
+            if self._offline:
+                raise
+
             log.error(
                 "Failed to load user configuration. Falling back to "
                 "full stock configuration."
@@ -886,7 +879,6 @@ class Firewall:
         self.helper.cleanup()
         self.config.cleanup()
         self.direct.cleanup()
-        self.policies.cleanup()
         self.policy.cleanup()
         self._firewalld_conf.cleanup()
         self.__init_vars()
@@ -1015,24 +1007,11 @@ class Firewall:
             backends.append(self.nftables_backend)
         return backends
 
-    def apply_default_tables(self, use_transaction=None):
-        if use_transaction is None:
-            transaction = FirewallTransaction(self)
-        else:
-            transaction = use_transaction
-
+    def apply_default_tables(self, transaction):
         for backend in self.enabled_backends():
             transaction.add_rules(backend, backend.build_default_tables())
 
-        if use_transaction is None:
-            transaction.execute(True)
-
-    def apply_default_rules(self, use_transaction=None):
-        if use_transaction is None:
-            transaction = FirewallTransaction(self)
-        else:
-            transaction = use_transaction
-
+    def apply_default_rules(self, transaction):
         for backend in self.enabled_backends():
             rules = backend.build_default_rules(self._log_denied)
             transaction.add_rules(backend, rules)
@@ -1040,16 +1019,13 @@ class Firewall:
         if self.is_ipv_enabled("ipv6"):
             ipv6_backend = self.get_backend_by_ipv("ipv6")
             if "raw" in ipv6_backend.get_available_tables():
-                if self.ipv6_rpfilter_enabled:
+                if self._ipv6_rpfilter != "no":
                     rules = ipv6_backend.build_rpfilter_rules(self._log_denied)
                     transaction.add_rules(ipv6_backend, rules)
 
         if self.is_ipv_enabled("ipv6") and self._rfc3964_ipv4:
             rules = ipv6_backend.build_rfc3964_ipv4_rules()
             transaction.add_rules(ipv6_backend, rules)
-
-        if use_transaction is None:
-            transaction.execute(True)
 
     def may_skip_flush_direct_backends(self):
         if self.nftables_enabled and not self.direct.has_runtime_configuration():
@@ -1058,37 +1034,25 @@ class Firewall:
         return False
 
     def flush_direct_backends(self, use_transaction=None):
-        if use_transaction is None:
-            transaction = FirewallTransaction(self)
-        else:
-            transaction = use_transaction
+        with self.with_transaction(use_transaction) as transaction:
 
-        for backend in self.all_backends():
-            if backend in self.enabled_backends():
-                continue
-            rules = backend.build_flush_rules()
-            transaction.add_rules(backend, rules)
-
-        if use_transaction is None:
-            transaction.execute(True)
+            for backend in self.all_backends():
+                if backend in self.enabled_backends():
+                    continue
+                rules = backend.build_flush_rules()
+                transaction.add_rules(backend, rules)
 
     def flush(self, use_transaction=None):
-        if use_transaction is None:
-            transaction = FirewallTransaction(self)
-        else:
-            transaction = use_transaction
+        with self.with_transaction(use_transaction) as transaction:
 
-        log.debug1("Flushing rule set")
+            log.debug1("Flushing rule set")
 
-        if not self.may_skip_flush_direct_backends():
-            self.flush_direct_backends(use_transaction=transaction)
+            if not self.may_skip_flush_direct_backends():
+                self.flush_direct_backends(use_transaction=transaction)
 
-        for backend in self.enabled_backends():
-            rules = backend.build_flush_rules()
-            transaction.add_rules(backend, rules)
-
-        if use_transaction is None:
-            transaction.execute(True)
+            for backend in self.enabled_backends():
+                rules = backend.build_flush_rules()
+                transaction.add_rules(backend, rules)
 
     def _set_policy_build_rules(self, backend, policy, policy_details=None):
         assert policy in ("ACCEPT", "DROP", "PANIC")
@@ -1102,25 +1066,19 @@ class Firewall:
         return backend.build_set_policy_rules(policy, policy_details)
 
     def set_policy(self, policy, policy_details=None, use_transaction=None):
-        if use_transaction is None:
-            transaction = FirewallTransaction(self)
-        else:
-            transaction = use_transaction
+        with self.with_transaction(use_transaction) as transaction:
 
-        log.debug1(
-            "Setting policy to '%s'%s",
-            policy,
-            f" (ReloadPolicy={firewalld_conf._unparse_reload_policy(policy_details)})"
-            if policy == "DROP"
-            else "",
-        )
+            log.debug1(
+                "Setting policy to '%s'%s",
+                policy,
+                f" (ReloadPolicy={firewalld_conf._unparse_reload_policy(policy_details)})"
+                if policy == "DROP"
+                else "",
+            )
 
-        for backend in self.enabled_backends():
-            rules = self._set_policy_build_rules(backend, policy, policy_details)
-            transaction.add_rules(backend, rules)
-
-        if use_transaction is None:
-            transaction.execute(True)
+            for backend in self.enabled_backends():
+                rules = self._set_policy_build_rules(backend, policy, policy_details)
+                transaction.add_rules(backend, rules)
 
     # rule function used in handle_ functions
 
