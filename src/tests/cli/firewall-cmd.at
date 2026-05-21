@@ -1031,9 +1031,9 @@ FWD_START_TEST([ipset])
     NFT_LIST_RULES([inet], [filter_INPUT_POLICIES], 0, [dnl
         table inet firewalld {
             chain filter_INPUT_POLICIES {
-                ip saddr . oifname @foobar jump filter_IN_policy_allow-host-ipv6
-                ip saddr . oifname @foobar jump filter_IN_internal
-                ip saddr . oifname @foobar reject with icmpx admin-prohibited
+                ip saddr . iifname @foobar jump filter_IN_policy_allow-host-ipv6
+                ip saddr . iifname @foobar jump filter_IN_internal
+                ip saddr . iifname @foobar reject with icmpx admin-prohibited
                 jump filter_IN_policy_allow-host-ipv6
                 jump filter_IN_public
                 reject with icmpx admin-prohibited
@@ -1274,58 +1274,86 @@ FWD_END_TEST
 FWD_START_TEST([lockdown])
     AT_KEYWORDS(lockdown)
 
-    FWD_CHECK([--add-lockdown-whitelist-command /usr/bin/command], 0, ignore)
-    FWD_CHECK([--query-lockdown-whitelist-command /usr/bin/command], 0, ignore)
-    FWD_CHECK([--list-lockdown-whitelist-commands | grep "/usr/bin/command"], 0, ignore)
-    FWD_CHECK([--remove-lockdown-whitelist-command /usr/bin/command], 0, ignore)
-    FWD_CHECK([--query-lockdown-whitelist-command /usr/bin/command], 1, ignore)
-    FWD_CHECK([--permanent --add-lockdown-whitelist-command /usr/bin/command], 0, ignore)
-    FWD_CHECK([--permanent --query-lockdown-whitelist-command /usr/bin/command], 0, ignore)
-    FWD_CHECK([--permanent --list-lockdown-whitelist-commands | grep "/usr/bin/command"], 0, ignore)
-    FWD_CHECK([--permanent --remove-lockdown-whitelist-command /usr/bin/command], 0, ignore)
-    FWD_CHECK([--permanent --query-lockdown-whitelist-command /usr/bin/command], 1, ignore)
+    FWD_CHECK([--add-lockdown-whitelist-command /usr/bin/command], 0, [], [Lockdown feature is deprecated and removed.
+])
+    FWD_CHECK([--query-lockdown-whitelist-command /usr/bin/command], 0, [], [Lockdown feature is deprecated and removed.
+])
+    FWD_CHECK([--remove-lockdown-whitelist-command /usr/bin/command], 0, [], [Lockdown feature is deprecated and removed.
+])
+    FWD_CHECK([--query-lockdown-whitelist-command /usr/bin/command], 0, [], [Lockdown feature is deprecated and removed.
+])
+    FWD_CHECK([--permanent --add-lockdown-whitelist-command /usr/bin/command], 0, [], [Lockdown feature is deprecated and removed.
+])
+    FWD_CHECK([--permanent --query-lockdown-whitelist-command /usr/bin/command], 0, [], [Lockdown feature is deprecated and removed.
+])
+    FWD_CHECK([--permanent --remove-lockdown-whitelist-command /usr/bin/command], 0, [], [Lockdown feature is deprecated and removed.
+])
+    FWD_CHECK([--permanent --query-lockdown-whitelist-command /usr/bin/command], 0, [], [Lockdown feature is deprecated and removed.
+])
 
-    FWD_CHECK([--add-lockdown-whitelist-context system_u:system_r:MadDaemon_t:s0], 0, ignore)
-    FWD_CHECK([--query-lockdown-whitelist-context system_u:system_r:MadDaemon_t:s0], 0, ignore)
-    FWD_CHECK([--list-lockdown-whitelist-contexts | grep "system_u:system_r:MadDaemon_t:s0"], 0, ignore)
-    FWD_CHECK([--remove-lockdown-whitelist-context system_u:system_r:MadDaemon_t:s0], 0, ignore)
-    FWD_CHECK([--query-lockdown-whitelist-context system_u:system_r:MadDaemon_t:s0], 1, ignore)
-    FWD_CHECK([--permanent --add-lockdown-whitelist-context system_u:system_r:MadDaemon_t:s0], 0, ignore)
-    FWD_CHECK([--permanent --query-lockdown-whitelist-context system_u:system_r:MadDaemon_t:s0], 0, ignore)
-    FWD_CHECK([--permanent --list-lockdown-whitelist-contexts | grep "system_u:system_r:MadDaemon_t:s0"], 0, ignore)
-    FWD_CHECK([--permanent --remove-lockdown-whitelist-context system_u:system_r:MadDaemon_t:s0], 0, ignore)
-    FWD_CHECK([--permanent --query-lockdown-whitelist-context system_u:system_r:MadDaemon_t:s0], 1, ignore)
+    FWD_CHECK([--add-lockdown-whitelist-context system_u:system_r:MadDaemon_t:s0], 0, [], [Lockdown feature is deprecated and removed.
+])
+    FWD_CHECK([--query-lockdown-whitelist-context system_u:system_r:MadDaemon_t:s0], 0, [], [Lockdown feature is deprecated and removed.
+])
+    FWD_CHECK([--remove-lockdown-whitelist-context system_u:system_r:MadDaemon_t:s0], 0, [], [Lockdown feature is deprecated and removed.
+])
+    FWD_CHECK([--query-lockdown-whitelist-context system_u:system_r:MadDaemon_t:s0], 0, [], [Lockdown feature is deprecated and removed.
+])
+    FWD_CHECK([--permanent --add-lockdown-whitelist-context system_u:system_r:MadDaemon_t:s0], 0, [], [Lockdown feature is deprecated and removed.
+])
+    FWD_CHECK([--permanent --query-lockdown-whitelist-context system_u:system_r:MadDaemon_t:s0], 0, [], [Lockdown feature is deprecated and removed.
+])
+    FWD_CHECK([--permanent --remove-lockdown-whitelist-context system_u:system_r:MadDaemon_t:s0], 0, [], [Lockdown feature is deprecated and removed.
+])
+    FWD_CHECK([--permanent --query-lockdown-whitelist-context system_u:system_r:MadDaemon_t:s0], 0, [], [Lockdown feature is deprecated and removed.
+])
 
-    FWD_CHECK([--add-lockdown-whitelist-uid 6666], 0, ignore)
-    FWD_CHECK([--query-lockdown-whitelist-uid 6666], 0, ignore)
-    FWD_CHECK([--list-lockdown-whitelist-uids | grep "6666"], 0, ignore)
-    FWD_CHECK([--remove-lockdown-whitelist-uid 6666], 0, ignore)
-    FWD_CHECK([--query-lockdown-whitelist-uid 6666], 1, ignore)
+    FWD_CHECK([--add-lockdown-whitelist-uid 6666], 0, [], [Lockdown feature is deprecated and removed.
+])
+    FWD_CHECK([--query-lockdown-whitelist-uid 6666], 0, [], [Lockdown feature is deprecated and removed.
+])
+    FWD_CHECK([--remove-lockdown-whitelist-uid 6666], 0, [], [Lockdown feature is deprecated and removed.
+])
+    FWD_CHECK([--query-lockdown-whitelist-uid 6666], 0, [], [Lockdown feature is deprecated and removed.
+])
     FWD_CHECK([--add-lockdown-whitelist-uid 6666x], 2, ignore, ignore)
-    FWD_CHECK([--permanent --add-lockdown-whitelist-uid 6666], 0, ignore)
-    FWD_CHECK([--permanent --query-lockdown-whitelist-uid 6666], 0, ignore)
-    FWD_CHECK([--permanent --list-lockdown-whitelist-uids | grep "6666"], 0, ignore)
-    FWD_CHECK([--permanent --remove-lockdown-whitelist-uid 6666], 0, ignore)
-    FWD_CHECK([--permanent --query-lockdown-whitelist-uid 6666], 1, ignore)
+    FWD_CHECK([--permanent --add-lockdown-whitelist-uid 6666], 0, [], [Lockdown feature is deprecated and removed.
+])
+    FWD_CHECK([--permanent --query-lockdown-whitelist-uid 6666], 0, [], [Lockdown feature is deprecated and removed.
+])
+    FWD_CHECK([--permanent --remove-lockdown-whitelist-uid 6666], 0, [], [Lockdown feature is deprecated and removed.
+])
+    FWD_CHECK([--permanent --query-lockdown-whitelist-uid 6666], 0, [], [Lockdown feature is deprecated and removed.
+])
     FWD_CHECK([--permanent --add-lockdown-whitelist-uid 6666x], 2, ignore, ignore)
-
-    FWD_CHECK([--add-lockdown-whitelist-user theboss], 0, ignore)
-    FWD_CHECK([--query-lockdown-whitelist-user theboss], 0, ignore)
-    FWD_CHECK([--list-lockdown-whitelist-users | grep "theboss"], 0, ignore)
-    FWD_CHECK([--remove-lockdown-whitelist-user theboss], 0, ignore)
-    FWD_CHECK([--query-lockdown-whitelist-user theboss], 1, ignore)
-    FWD_CHECK([--permanent --add-lockdown-whitelist-user theboss], 0, ignore)
-    FWD_CHECK([--permanent --query-lockdown-whitelist-user theboss], 0, ignore)
-    FWD_CHECK([--permanent --list-lockdown-whitelist-users | grep "theboss"], 0, ignore)
-    FWD_CHECK([--permanent --remove-lockdown-whitelist-user theboss], 0, ignore)
-    FWD_CHECK([--permanent --query-lockdown-whitelist-user theboss], 1, ignore)
+    FWD_CHECK([--add-lockdown-whitelist-user theboss], 0, [], [Lockdown feature is deprecated and removed.
+])
+    FWD_CHECK([--query-lockdown-whitelist-user theboss], 0, [], [Lockdown feature is deprecated and removed.
+])
+    FWD_CHECK([--remove-lockdown-whitelist-user theboss], 0, [], [Lockdown feature is deprecated and removed.
+])
+    FWD_CHECK([--query-lockdown-whitelist-user theboss], 0, [], [Lockdown feature is deprecated and removed.
+])
+    FWD_CHECK([--permanent --add-lockdown-whitelist-user theboss], 0, [], [Lockdown feature is deprecated and removed.
+])
+    FWD_CHECK([--permanent --query-lockdown-whitelist-user theboss], 0, [], [Lockdown feature is deprecated and removed.
+])
+    FWD_CHECK([--permanent --remove-lockdown-whitelist-user theboss], 0, [], [Lockdown feature is deprecated and removed.
+])
+    FWD_CHECK([--permanent --query-lockdown-whitelist-user theboss], 0, [], [Lockdown feature is deprecated and removed.
+])
 
     AT_SKIP_IF([test `whoami` != 'root'])
-    FWD_CHECK([--add-lockdown-whitelist-user root], 0, ignore)
-    FWD_CHECK([--lockdown-on], 0, ignore)
-    FWD_CHECK([--query-lockdown], 0, ignore)
-    FWD_CHECK([--lockdown-off], 0, ignore)
-    FWD_CHECK([--query-lockdown], 1, ignore)
+    FWD_CHECK([--add-lockdown-whitelist-user root], 0, [], [Lockdown feature is deprecated and removed.
+])
+    FWD_CHECK([--lockdown-on], 0, [], [Lockdown feature is deprecated and removed.
+])
+    FWD_CHECK([--query-lockdown], 0, [], [Lockdown feature is deprecated and removed.
+])
+    FWD_CHECK([--lockdown-off], 0, [], [Lockdown feature is deprecated and removed.
+])
+    FWD_CHECK([--query-lockdown], 0, [], [Lockdown feature is deprecated and removed.
+])
 FWD_END_TEST
 
 m4_define([rich_rule_test], [
@@ -1345,9 +1373,9 @@ FWD_START_TEST([rich rules good])
     rich_rule_test([rule protocol value="esp" accept])
     rich_rule_test([rule protocol value="sctp" log])
     rich_rule_test([rule protocol value="igmp" log])
-    rich_rule_test([rule family="ipv4" source address="192.168.0.0/24" service name="tftp" log prefix="tftp: " level="info" limit value="1/m" accept])
+    rich_rule_test([rule family="ipv4" source address="192.168.0.0/24" service name="tftp" log prefix="tftp: " level="info" limit value="1/m" burst=5 accept])
     rich_rule_test([rule family="ipv4" source not address="192.168.0.0/24" service name="dns" log prefix="dns: " level="info" limit value="2/m" drop])
-    rich_rule_test([rule family="ipv4" source address="192.168.0.0/24" service name="irc" nflog prefix="irc: " group=1000 queue-size=10 limit value="1/m" accept])
+    rich_rule_test([rule family="ipv4" source address="192.168.0.0/24" service name="irc" nflog prefix="irc: " group=1000 queue-size=10 limit value="1/m" burst="5" accept])
     rich_rule_test([rule family="ipv4" source not address="192.168.0.0/24" service name="mysql" nflog prefix="mysql: " queue-size=100 limit value="2/m" drop])
     rich_rule_test([rule family="ipv4" port port="2222" protocol="tcp" nflog prefix="port-2222: " queue-size=0 drop])
     rich_rule_test([rule family="ipv4" port port="3333" protocol="udp" nflog prefix="port-3333: " queue-size=65535 accept])
@@ -1958,7 +1986,7 @@ FWD_START_TEST([rich rules bad])
     rich_rule_test([rule protocol value="igmp" log level="eror"], 125) dnl bad log level
     IF_HOST_SUPPORTS_IPV6_RULES([
     rich_rule_test([family="ipv6" accept], 122) dnl no rule
-    rich_rule_test([rule source address="1:2:3:4:6::" icmp-block name="redirect" log level="info" limit value="1/2m"], 207) dnl missing family
+    rich_rule_test([rule source address="1:2:3:4:6::" icmp-block name="redirect" log level="info" limit value="1/m"], 207) dnl missing family
     rich_rule_test([rule family="ipv6" source address="1:2:3:4:6::" icmp-block name="redirect" log level="info" limit value="1/2m"], 123) dnl bad limit
     ])
     rich_rule_test([rule protocol value="esp"], 122) dnl no action/log/audit
@@ -2040,7 +2068,7 @@ ERROR: Invalid option: 'SomeBogusField=yes'
     <user uid="666"/>
 </whitelist>
 ])
-    FWD_CHECK([--check-config], 28, ignore, ignore)
+    FWD_CHECK([--check-config], 0, ignore, ignore)
 
     AT_DATA([./lockdown-whitelist.xml], [dnl
 <?xml version="1.0" encoding="utf-8"?>
@@ -2048,7 +2076,7 @@ ERROR: Invalid option: 'SomeBogusField=yes'
     <uid id="666"/>
 </whitelist>
 ])
-    FWD_CHECK([--check-config], 28, ignore, ignore)
+    FWD_CHECK([--check-config], 0, ignore, ignore)
 
     AT_DATA([./lockdown-whitelist.xml], [dnl
 <?xml version="1.0" encoding="utf-8"?>
@@ -2056,7 +2084,7 @@ ERROR: Invalid option: 'SomeBogusField=yes'
     <group name="foobar" />
 </whitelist>
 ])
-    FWD_CHECK([--check-config], 28, ignore, ignore)
+    FWD_CHECK([--check-config], 0, ignore, ignore)
     AT_CHECK([rm ./lockdown-whitelist.xml])
 
     dnl ipset
@@ -2308,11 +2336,7 @@ AT_DATA([./ipsets/foobar.xml], [dnl
 <source />
 </zone>
 ])
-    FWD_CHECK([--check-config], 0, ignore, [dnl
-m4_ifdef([TESTING_FIREWALL_OFFLINE_CMD], [dnl
-WARNING: Invalid source: No address no ipset.
-WARNING: Invalid source: No address no ipset.
-])])
+    FWD_CHECK([--check-config], 144, ignore, ignore)
 
     AT_DATA([./zones/foobar.xml], [dnl
 <?xml version="1.0" encoding="utf-8"?>
@@ -2336,11 +2360,7 @@ WARNING: Invalid source: No address no ipset.
 </rule>
 </zone>
 ])
-    FWD_CHECK([--check-config], 0, ignore, [dnl
-m4_ifdef([TESTING_FIREWALL_OFFLINE_CMD], [dnl
-WARNING: INVALID_LIMIT: none: rule family="ipv4" source address="10.0.0.1/24" accept limit value="none"
-WARNING: INVALID_LIMIT: none: rule family="ipv4" source address="10.0.0.1/24" accept limit value="none"
-])])
+    FWD_CHECK([--check-config], 123, [ignore], [ignore])
 
     AT_DATA([./zones/foobar.xml], [dnl
 <?xml version="1.0" encoding="utf-8"?>
@@ -2351,11 +2371,7 @@ WARNING: INVALID_LIMIT: none: rule family="ipv4" source address="10.0.0.1/24" ac
 </rule>
 </zone>
 ])
-    FWD_CHECK([--check-config], 0, ignore, [dnl
-m4_ifdef([TESTING_FIREWALL_OFFLINE_CMD], [dnl
-WARNING: Invalid rule: Invalid log prefix
-WARNING: Invalid rule: Invalid log prefix
-])])
+    FWD_CHECK([--check-config], 141, ignore, ignore)
 
     AT_DATA([./zones/foobar.xml], [dnl
 <?xml version="1.0" encoding="utf-8"?>
@@ -2366,11 +2382,7 @@ WARNING: Invalid rule: Invalid log prefix
 </rule>
 </zone>
 ])
-    FWD_CHECK([--check-config], 0, ignore, [dnl
-m4_ifdef([TESTING_FIREWALL_OFFLINE_CMD], [dnl
-WARNING: Invalid rule: Invalid log level
-WARNING: Invalid rule: Invalid log level
-])])
+    FWD_CHECK([--check-config], 125, ignore, ignore)
 
     AT_DATA([./zones/foobar.xml], [dnl
 <?xml version="1.0" encoding="utf-8"?>
@@ -2381,11 +2393,7 @@ WARNING: Invalid rule: Invalid log level
 </rule>
 </zone>
 ])
-    FWD_CHECK([--check-config], 0, ignore, [dnl
-m4_ifdef([TESTING_FIREWALL_OFFLINE_CMD], [dnl
-WARNING: Invalid rule: Invalid nflog group value
-WARNING: Invalid rule: Invalid nflog group value
-])])
+    FWD_CHECK([--check-config], 142, ignore, ignore)
 
     AT_DATA([./zones/foobar.xml], [dnl
 <?xml version="1.0" encoding="utf-8"?>
@@ -2396,11 +2404,7 @@ WARNING: Invalid rule: Invalid nflog group value
 </rule>
 </zone>
 ])
-    FWD_CHECK([--check-config], 0, ignore, [dnl
-m4_ifdef([TESTING_FIREWALL_OFFLINE_CMD], [dnl
-WARNING: Invalid rule: Invalid nflog queue-size
-WARNING: Invalid rule: Invalid nflog queue-size
-])])
+    FWD_CHECK([--check-config], 143, ignore, ignore)
 
     AT_DATA([./zones/foobar.xml], [dnl
 <?xml version="1.0" encoding="utf-8"?>
@@ -2423,11 +2427,7 @@ WARNING: Invalid rule: Invalid nflog queue-size
 </rule>
 </zone>
 ])
-    FWD_CHECK([--check-config], 0, ignore, [dnl
-m4_ifdef([TESTING_FIREWALL_OFFLINE_CMD], [dnl
-WARNING: INVALID_ADDR: 10.0.0.1/24: rule family="ipv6" source address="10.0.0.1/24" accept
-WARNING: INVALID_ADDR: 10.0.0.1/24: rule family="ipv6" source address="10.0.0.1/24" accept
-])])
+    FWD_CHECK([--check-config], 105, ignore, ignore)
     ])
     AT_CHECK([rm ./zones/foobar.xml])
 

@@ -406,24 +406,28 @@ def checkInterface(iface):
 
 
 def checkUINT16(val):
-    try:
-        x = int(val, 0)
-    except ValueError:
-        return False
-    else:
-        if x >= 0 and x <= 65535:
-            return True
+    if not isinstance(val, int):
+        try:
+            val = int(val, 0)
+        except ValueError:
+            return False
+
+    if val >= 0 and val <= 65535:
+        return True
+
     return False
 
 
 def checkUINT32(val):
-    try:
-        x = int(val, 0)
-    except ValueError:
-        return False
-    else:
-        if x >= 0 and x <= 4294967295:
-            return True
+    if not isinstance(val, int):
+        try:
+            val = int(val, 0)
+        except ValueError:
+            return False
+
+    if val >= 0 and val <= 4294967295:
+        return True
+
     return False
 
 
@@ -665,8 +669,10 @@ def wrong_args_for_callable(fcn, *a, **kw):
     # Check whether fcn(*a, **kw) will fail due to invalid
     # arguments.
 
+    sig = inspect.signature(fcn)
+
     try:
-        inspect.bind(fcn, *a, **kw)
+        sig.bind(*a, **kw)
     except TypeError:
         return False
     return True

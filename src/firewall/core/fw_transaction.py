@@ -25,9 +25,9 @@ class FirewallTransaction:
 
     def clear(self):
         self.rules.clear()
-        del self.pre_funcs[:]
-        del self.post_funcs[:]
-        del self.fail_funcs[:]
+        self.pre_funcs.clear()
+        self.post_funcs.clear()
+        self.fail_funcs.clear()
 
     def add_rule(self, backend, rule):
         self.rules.setdefault(backend.name, []).append(rule)
@@ -68,7 +68,16 @@ class FirewallTransaction:
         for module in modules:
             self.remove_module(module)
 
-    def execute(self, enable):
+    def execute(self, enable, clear=True):
+        if (
+            not self.rules
+            and not self.pre_funcs
+            and not self.post_funcs
+            and not self.fail_funcs
+        ):
+            # empty transaction. Don't do anything.
+            return
+
         log.debug4("%s.execute(%s)" % (type(self), enable))
 
         rules = self.rules
@@ -118,6 +127,9 @@ class FirewallTransaction:
 
         # post
         self.post()
+
+        if clear:
+            self.clear()
 
     def pre(self):
         log.debug4("%s.pre()" % type(self))

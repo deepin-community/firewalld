@@ -30,7 +30,7 @@ APPLET_NAME = "firewall-applet"
 DATADIR = "/usr/share/" + DAEMON_NAME
 CONFIG_GLADE_NAME = CONFIG_NAME + ".glade"
 COPYRIGHT = "(C) 2010-2017 Red Hat, Inc."
-VERSION = "2.1.2"
+VERSION = "2.3.1"
 AUTHORS = [
     "Thomas Woerner <twoerner@redhat.com>",
     "Jiri Popelka <jpopelka@redhat.com>",
@@ -54,7 +54,7 @@ WEBSITE = "http://www.firewalld.org"
 
 
 def set_system_config_paths(path):
-    global ETC_FIREWALLD, FIREWALLD_CONF, ETC_FIREWALLD_ZONES, ETC_FIREWALLD_SERVICES, ETC_FIREWALLD_ICMPTYPES, ETC_FIREWALLD_IPSETS, ETC_FIREWALLD_HELPERS, FIREWALLD_DIRECT, LOCKDOWN_WHITELIST, ETC_FIREWALLD_POLICIES
+    global ETC_FIREWALLD, FIREWALLD_CONF, ETC_FIREWALLD_ZONES, ETC_FIREWALLD_SERVICES, ETC_FIREWALLD_ICMPTYPES, ETC_FIREWALLD_IPSETS, ETC_FIREWALLD_HELPERS, FIREWALLD_DIRECT, ETC_FIREWALLD_POLICIES
     ETC_FIREWALLD = path
     FIREWALLD_CONF = path + "/firewalld.conf"
     ETC_FIREWALLD_ZONES = path + "/zones"
@@ -64,7 +64,6 @@ def set_system_config_paths(path):
     ETC_FIREWALLD_HELPERS = path + "/helpers"
     ETC_FIREWALLD_POLICIES = path + "/policies"
     FIREWALLD_DIRECT = path + "/direct.xml"
-    LOCKDOWN_WHITELIST = path + "/lockdown-whitelist.xml"
 
 
 set_system_config_paths("/etc/firewalld")
@@ -112,14 +111,23 @@ COMMANDS = {
 LOG_DENIED_VALUES = ["all", "unicast", "broadcast", "multicast", "off"]
 AUTOMATIC_HELPERS_VALUES = ["yes", "no", "system"]
 FIREWALL_BACKEND_VALUES = ["nftables", "iptables"]
+IPV6_RPFILTER_VALUES = [
+    "yes",
+    "true",
+    "no",
+    "false",
+    "strict",
+    "loose",
+    "loose-forward",
+    "strict-forward",
+]
 
 # fallbacks: will be overloaded by firewalld.conf
 FALLBACK_ZONE = "public"
 FALLBACK_MINIMAL_MARK = 100
 FALLBACK_CLEANUP_ON_EXIT = True
 FALLBACK_CLEANUP_MODULES_ON_EXIT = False
-FALLBACK_LOCKDOWN = False
-FALLBACK_IPV6_RPFILTER = True
+FALLBACK_IPV6_RPFILTER = "strict"
 FALLBACK_INDIVIDUAL_CALLS = False
 FALLBACK_LOG_DENIED = "off"
 FALLBACK_AUTOMATIC_HELPERS = "no"
@@ -130,3 +138,5 @@ FALLBACK_RFC3964_IPV4 = True
 FALLBACK_ALLOW_ZONE_DRIFTING = False
 FALLBACK_NFTABLES_FLOWTABLE = "off"
 FALLBACK_NFTABLES_COUNTERS = False
+FALLBACK_NFTABLES_TABLE_OWNER = True
+FALLBACK_STRICT_FORWARD_PORTS = False

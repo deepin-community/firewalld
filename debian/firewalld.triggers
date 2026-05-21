@@ -1,0 +1,2 @@
+interest-noawait /usr/lib/firewalld/zones
+interest-noawait /usr/lib/firewalld/services

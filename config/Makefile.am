@@ -1,6 +1,6 @@
 sconfdir = $(sysconfdir)/firewalld
 prefixlibdir = ${prefix}/lib/firewalld
-dist_sconf_DATA = firewalld.conf lockdown-whitelist.xml
+dist_sconf_DATA = firewalld.conf
 
 desktop_FILES = firewall-config.desktop.in
 desktopdir = $(datadir)/applications
@@ -30,6 +30,7 @@ gsettings_SCHEMAS = $(gsettings_in_file:.xml.in=.xml)
 
 xmlschemadir = $(prefixlibdir)/xmlschema
 dist_xmlschema_DATA = \
+	xmlschema/helper.xsd \
 	xmlschema/icmptype.xsd \
 	xmlschema/ipset.xsd \
 	xmlschema/service.xsd \
@@ -48,7 +49,7 @@ BUILT_SOURCES = \
 
 @INTLTOOL_DESKTOP_RULE@
 @INTLTOOL_POLICY_RULE@
-@INTLTOOL_XML_NOMERGE_RULE@
+@INTLTOOL_XML_RULE@
 @GSETTINGS_RULES@
 
 all: $(desktop_DATA) $(appdata_DATA) $(applet_desktop_DATA) $(polkit1_action_DATA) $(gsettings_SCHEMAS)
@@ -137,6 +138,7 @@ CONFIG_FILES = \
 	services/anno-1602.xml \
 	services/anno-1800.xml \
 	services/apcupsd.xml \
+	services/aseqnet.xml \
 	services/audit.xml \
 	services/ausweisapp2.xml \
 	services/bacula-client.xml \
@@ -204,6 +206,8 @@ CONFIG_FILES = \
 	services/ident.xml \
 	services/imaps.xml \
 	services/imap.xml \
+	services/iperf2.xml \
+	services/iperf3.xml \
 	services/ipfs.xml \
 	services/ipp-client.xml \
 	services/ipp.xml \
@@ -248,9 +252,11 @@ CONFIG_FILES = \
 	services/minecraft.xml \
 	services/memcache.xml \
 	services/minidlna.xml \
+	services/mndp.xml \
 	services/mongodb.xml \
 	services/mosh.xml \
 	services/mountd.xml \
+	services/mpd.xml \
 	services/mqtt.xml \
 	services/mqtt-tls.xml \
 	services/mssql.xml \
@@ -292,12 +298,14 @@ CONFIG_FILES = \
 	services/puppetmaster.xml \
 	services/quassel.xml \
 	services/radius.xml \
+	services/radsec.xml \
 	services/rdp.xml \
 	services/redis-sentinel.xml \
 	services/redis.xml \
 	services/RH-Satellite-6.xml \
 	services/RH-Satellite-6-capsule.xml \
 	services/rpc-bind.xml \
+	services/rootd.xml \
 	services/rquotad.xml \
 	services/rsh.xml \
 	services/rsyncd.xml \
@@ -310,6 +318,7 @@ CONFIG_FILES = \
 	services/settlers-history-collection.xml \
 	services/sips.xml \
 	services/sip.xml \
+	services/slimevr.xml \
 	services/slp.xml \
 	services/smtp-submission.xml \
 	services/smtps.xml \
@@ -325,8 +334,11 @@ CONFIG_FILES = \
 	services/ssh.xml \
 	services/statsrv.xml \
 	services/steam-streaming.xml \
+	services/steam-lan-transfer.xml \
 	services/stellaris.xml \
 	services/stronghold-crusader.xml \
+	services/stun.xml \
+	services/stuns.xml \
 	services/submission.xml \
 	services/supertuxkart.xml \
 	services/svdrp.xml \
@@ -346,6 +358,8 @@ CONFIG_FILES = \
 	services/tinc.xml \
 	services/tor-socks.xml \
 	services/transmission-client.xml \
+	services/turn.xml \
+	services/turns.xml \
 	services/upnp-client.xml \
 	services/vdsm.xml \
 	services/vnc-server.xml \
@@ -355,6 +369,7 @@ CONFIG_FILES = \
 	services/wbem-https.xml \
 	services/wireguard.xml \
 	services/ws-discovery-client.xml \
+	services/ws-discovery-host.xml \
 	services/ws-discovery-tcp.xml \
 	services/ws-discovery-udp.xml \
 	services/ws-discovery.xml \
@@ -402,7 +417,6 @@ EXTRA_DIST = \
 	$(CONFIG_FILES) \
 	$(CONFIG_FILES_TESTS) \
 	$(dist_xmlschema_DATA) \
-	lockdown-whitelist.xml.in \
 	firewalld.init \
 	firewalld.logrotate.in \
 	firewalld-sysctls.conf.in \

@@ -9,6 +9,7 @@ import os
 
 import dbus
 import dbus.service
+import collections
 
 from firewall import config
 from firewall.core.base import DEFAULT_ZONE_TARGET
@@ -19,6 +20,7 @@ from firewall.server.decorators import (
     handle_exceptions,
     dbus_handle_exceptions,
     dbus_service_method,
+    dbus_service_signal,
     dbus_service_method_deprecated,
     dbus_service_signal_deprecated,
     dbus_polkit_require_auth,
@@ -32,14 +34,9 @@ from firewall.server.config_helper import FirewallDConfigHelper
 from firewall.core.io.icmptype import IcmpType
 from firewall.core.io.ipset import IPSet
 from firewall.core.io.helper import Helper
-from firewall.core.io.lockdown_whitelist import LockdownWhitelist
 from firewall.core.io.direct import Direct
 from firewall.dbus_utils import (
     dbus_to_python,
-    command_of_sender,
-    context_of_sender,
-    uid_of_sender,
-    user_of_uid,
     dbus_introspection_prepare_properties,
     dbus_introspection_add_properties,
     dbus_introspection_add_deprecated,
@@ -52,6 +49,37 @@ from firewall.errors import FirewallError
 # class FirewallDConfig
 #
 ############################################################################
+
+ConfigPropertiesTuple = collections.namedtuple(
+    "ConfigPropertiesTuple",
+    [
+        "mode",
+        "is_deprecated",
+        "ignore_set",
+    ],
+)
+
+
+CONFIG_PROPERTIES = {
+    "DefaultZone": ConfigPropertiesTuple("read", False, False),
+    "MinimalMark": ConfigPropertiesTuple("readwrite", True, True),
+    "CleanupOnExit": ConfigPropertiesTuple("readwrite", False, False),
+    "CleanupModulesOnExit": ConfigPropertiesTuple("readwrite", False, False),
+    "IPv6_rpfilter": ConfigPropertiesTuple("readwrite", True, False),
+    "IPv6_rpfilter2": ConfigPropertiesTuple("readwrite", False, False),
+    "Lockdown": ConfigPropertiesTuple("readwrite", True, True),
+    "IndividualCalls": ConfigPropertiesTuple("readwrite", False, False),
+    "LogDenied": ConfigPropertiesTuple("readwrite", False, False),
+    "AutomaticHelpers": ConfigPropertiesTuple("readwrite", True, True),
+    "FirewallBackend": ConfigPropertiesTuple("readwrite", False, False),
+    "FlushAllOnReload": ConfigPropertiesTuple("readwrite", False, False),
+    "RFC3964_IPv4": ConfigPropertiesTuple("readwrite", False, False),
+    "AllowZoneDrifting": ConfigPropertiesTuple("readwrite", True, True),
+    "NftablesFlowtable": ConfigPropertiesTuple("readwrite", False, False),
+    "NftablesCounters": ConfigPropertiesTuple("readwrite", False, False),
+    "NftablesTableOwner": ConfigPropertiesTuple("readwrite", False, False),
+    "StrictForwardPorts": ConfigPropertiesTuple("readwrite", False, False),
+}
 
 
 class FirewallDConfig(DbusServiceObject):
@@ -88,29 +116,13 @@ class FirewallDConfig(DbusServiceObject):
                 path = "%s/%s" % (config.ETC_FIREWALLD_ZONES, filename)
                 if os.path.isdir(path):
                     self.watcher.add_watch_dir(path)
-        self.watcher.add_watch_file(config.LOCKDOWN_WHITELIST)
         self.watcher.add_watch_file(config.FIREWALLD_DIRECT)
         self.watcher.add_watch_file(config.FIREWALLD_CONF)
 
         dbus_introspection_prepare_properties(
             self,
             config.dbus.DBUS_INTERFACE_CONFIG,
-            {
-                "CleanupOnExit": "readwrite",
-                "CleanupModulesOnExit": "readwrite",
-                "IPv6_rpfilter": "readwrite",
-                "Lockdown": "readwrite",
-                "MinimalMark": "readwrite",
-                "IndividualCalls": "readwrite",
-                "LogDenied": "readwrite",
-                "AutomaticHelpers": "readwrite",
-                "FirewallBackend": "readwrite",
-                "FlushAllOnReload": "readwrite",
-                "RFC3964_IPv4": "readwrite",
-                "AllowZoneDrifting": "readwrite",
-                "NftablesFlowtable": "readwrite",
-                "NftablesCounters": "readwrite",
-            },
+            {prop: d.mode for prop, d in CONFIG_PROPERTIES.items()},
         )
 
     @handle_exceptions
@@ -286,16 +298,6 @@ class FirewallDConfig(DbusServiceObject):
                 self.removeHelper(obj)
             elif what == "update":
                 self._updateHelper(obj)
-
-        elif name == config.LOCKDOWN_WHITELIST:
-            try:
-                self.config.update_lockdown_whitelist()
-            except Exception as msg:
-                log.error(
-                    "Failed to load lockdown whitelist file '%s': %s" % (name, msg)
-                )
-                return
-            self.LockdownWhitelistUpdated()
 
         elif name == config.FIREWALLD_DIRECT:
             try:
@@ -590,53 +592,12 @@ class FirewallDConfig(DbusServiceObject):
                 "restarted. Try `firewall-offline-cmd --check-config`.",
             )
 
-        if self.config.lockdown_enabled():
-            if sender is None:
-                log.error("Lockdown not possible, sender not set.")
-                return
-            bus = dbus.SystemBus()
-            context = context_of_sender(bus, sender)
-            if self.config.access_check("context", context):
-                return
-            uid = uid_of_sender(bus, sender)
-            if self.config.access_check("uid", uid):
-                return
-            user = user_of_uid(uid)
-            if self.config.access_check("user", user):
-                return
-            command = command_of_sender(bus, sender)
-            if self.config.access_check("command", command):
-                return
-            raise FirewallError(errors.ACCESS_DENIED, "lockdown is enabled")
-
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
     # P R O P E R T I E S
 
     @dbus_handle_exceptions
     def _get_property(self, prop):
-        if prop not in [
-            "DefaultZone",
-            "MinimalMark",
-            "CleanupOnExit",
-            "CleanupModulesOnExit",
-            "Lockdown",
-            "IPv6_rpfilter",
-            "IndividualCalls",
-            "LogDenied",
-            "AutomaticHelpers",
-            "FirewallBackend",
-            "FlushAllOnReload",
-            "RFC3964_IPv4",
-            "AllowZoneDrifting",
-            "NftablesFlowtable",
-            "NftablesCounters",
-        ]:
-            raise dbus.exceptions.DBusException(
-                "org.freedesktop.DBus.Error.InvalidArgs: "
-                "Property '%s' does not exist" % prop
-            )
-
         value = self.config.get_firewalld_conf().get(prop)
 
         if prop == "DefaultZone":
@@ -658,12 +619,17 @@ class FirewallDConfig(DbusServiceObject):
                 value = "yes" if config.FALLBACK_CLEANUP_MODULES_ON_EXIT else "no"
             return dbus.String(value)
         elif prop == "Lockdown":
-            if value is None:
-                value = "yes" if config.FALLBACK_LOCKDOWN else "no"
-            return dbus.String(value)
+            # Deprecated and dropped.
+            return dbus.String("no")
         elif prop == "IPv6_rpfilter":
+            if value is None or value != "no":
+                return dbus.String("yes")
+            else:
+                return dbus.String("no")
+        elif prop == "IPv6_rpfilter2":
+            value = self.config.get_firewalld_conf().get("IPv6_rpfilter")
             if value is None:
-                value = "yes" if config.FALLBACK_IPV6_RPFILTER else "no"
+                value = config.FALLBACK_IPV6_RPFILTER
             return dbus.String(value)
         elif prop == "IndividualCalls":
             if value is None:
@@ -701,39 +667,14 @@ class FirewallDConfig(DbusServiceObject):
             if value is None:
                 value = "yes" if config.FALLBACK_NFTABLES_COUNTERS else "no"
             return dbus.String(value)
-
-    @dbus_handle_exceptions
-    def _get_dbus_property(self, prop):
-        if prop == "DefaultZone":
-            return dbus.String(self._get_property(prop))
-        elif prop == "MinimalMark":
-            return dbus.Int32(self._get_property(prop))
-        elif prop == "CleanupOnExit":
-            return dbus.String(self._get_property(prop))
-        elif prop == "CleanupModulesOnExit":
-            return dbus.String(self._get_property(prop))
-        elif prop == "Lockdown":
-            return dbus.String(self._get_property(prop))
-        elif prop == "IPv6_rpfilter":
-            return dbus.String(self._get_property(prop))
-        elif prop == "IndividualCalls":
-            return dbus.String(self._get_property(prop))
-        elif prop == "LogDenied":
-            return dbus.String(self._get_property(prop))
-        elif prop == "AutomaticHelpers":
-            return dbus.String(self._get_property(prop))
-        elif prop == "FirewallBackend":
-            return dbus.String(self._get_property(prop))
-        elif prop == "FlushAllOnReload":
-            return dbus.String(self._get_property(prop))
-        elif prop == "RFC3964_IPv4":
-            return dbus.String(self._get_property(prop))
-        elif prop == "AllowZoneDrifting":
-            return dbus.String(self._get_property(prop))
-        elif prop == "NftablesFlowtable":
-            return dbus.String(self._get_property(prop))
-        elif prop == "NftablesCounters":
-            return dbus.String(self._get_property(prop))
+        elif prop == "NftablesTableOwner":
+            if value is None:
+                value = "yes" if config.FALLBACK_NFTABLES_TABLE_OWNER else "no"
+            return dbus.String(value)
+        elif prop == "StrictForwardPorts":
+            if value is None:
+                value = "yes" if config.FALLBACK_STRICT_FORWARD_PORTS else "no"
+            return dbus.String(value)
         else:
             raise dbus.exceptions.DBusException(
                 "org.freedesktop.DBus.Error.InvalidArgs: "
@@ -749,7 +690,7 @@ class FirewallDConfig(DbusServiceObject):
         log.debug1("config.Get('%s', '%s')", interface_name, property_name)
 
         if interface_name == config.dbus.DBUS_INTERFACE_CONFIG:
-            return self._get_dbus_property(property_name)
+            return self._get_property(property_name)
         elif interface_name in [
             config.dbus.DBUS_INTERFACE_CONFIG_DIRECT,
             config.dbus.DBUS_INTERFACE_CONFIG_POLICIES,
@@ -772,23 +713,7 @@ class FirewallDConfig(DbusServiceObject):
 
         ret = {}
         if interface_name == config.dbus.DBUS_INTERFACE_CONFIG:
-            for x in [
-                "DefaultZone",
-                "MinimalMark",
-                "CleanupOnExit",
-                "CleanupModulesOnExit",
-                "Lockdown",
-                "IPv6_rpfilter",
-                "IndividualCalls",
-                "LogDenied",
-                "AutomaticHelpers",
-                "FirewallBackend",
-                "FlushAllOnReload",
-                "RFC3964_IPv4",
-                "AllowZoneDrifting",
-                "NftablesFlowtable",
-                "NftablesCounters",
-            ]:
+            for x in CONFIG_PROPERTIES:
                 ret[x] = self._get_property(x)
         elif interface_name in [
             config.dbus.DBUS_INTERFACE_CONFIG_DIRECT,
@@ -816,67 +741,60 @@ class FirewallDConfig(DbusServiceObject):
         self.accessCheck(sender)
 
         if interface_name == config.dbus.DBUS_INTERFACE_CONFIG:
-            if property_name in [
-                "CleanupOnExit",
-                "CleanupModulesOnExit",
-                "Lockdown",
-                "IPv6_rpfilter",
-                "IndividualCalls",
-                "LogDenied",
-                "FirewallBackend",
-                "FlushAllOnReload",
-                "RFC3964_IPv4",
-                "NftablesFlowtable",
-                "NftablesCounters",
-            ]:
+            pdata = CONFIG_PROPERTIES.get(property_name)
+            if pdata is None or pdata.mode != "readwrite":
+                raise dbus.exceptions.DBusException(
+                    "org.freedesktop.DBus.Error.InvalidArgs: "
+                    "Property '%s' does not exist" % property_name
+                )
+            if pdata.ignore_set:
+                # deprecated fields. Ignore setting them.
+                pass
+            else:
                 if property_name in [
                     "CleanupOnExit",
                     "CleanupModulesOnExit",
-                    "Lockdown",
                     "IPv6_rpfilter",
                     "IndividualCalls",
                     "FlushAllOnReload",
                     "RFC3964_IPv4",
                     "NftablesCounters",
+                    "NftablesTableOwner",
+                    "StrictForwardPorts",
                 ]:
                     if new_value.lower() not in ["yes", "no", "true", "false"]:
                         raise FirewallError(
                             errors.INVALID_VALUE,
                             "'%s' for %s" % (new_value, property_name),
                         )
+                    config_name = property_name
                 elif property_name == "LogDenied":
                     if new_value not in config.LOG_DENIED_VALUES:
                         raise FirewallError(
                             errors.INVALID_VALUE,
                             "'%s' for %s" % (new_value, property_name),
                         )
+                    config_name = property_name
                 elif property_name == "FirewallBackend":
                     if new_value not in config.FIREWALL_BACKEND_VALUES:
                         raise FirewallError(
                             errors.INVALID_VALUE,
                             "'%s' for %s" % (new_value, property_name),
                         )
+                    config_name = property_name
+                elif property_name == "IPv6_rpfilter2":
+                    if new_value not in config.IPV6_RPFILTER_VALUES:
+                        raise FirewallError(
+                            errors.INVALID_VALUE,
+                            "'%s' for %s" % (new_value, property_name),
+                        )
+                    config_name = "IPv6_rpfilter"
                 else:
-                    raise dbus.exceptions.DBusException(
-                        "org.freedesktop.DBus.Error.InvalidArgs: "
-                        "Property '%s' does not exist" % property_name
-                    )
+                    raise errors.BugError(f'Unhandled property_name "{property_name}"')
 
-                self.config.get_firewalld_conf().set(property_name, new_value)
+                self.config.get_firewalld_conf().set(config_name, new_value)
                 self.config.get_firewalld_conf().write()
                 self.PropertiesChanged(interface_name, {property_name: new_value}, [])
-            elif property_name in [
-                "MinimalMark",
-                "AutomaticHelpers",
-                "AllowZoneDrifting",
-            ]:
-                # deprecated fields. Ignore setting them.
-                pass
-            else:
-                raise dbus.exceptions.DBusException(
-                    "org.freedesktop.DBus.Error.InvalidArgs: "
-                    "Property '%s' does not exist" % property_name
-                )
         elif interface_name in [
             config.dbus.DBUS_INTERFACE_CONFIG_DIRECT,
             config.dbus.DBUS_INTERFACE_CONFIG_POLICIES,
@@ -891,7 +809,7 @@ class FirewallDConfig(DbusServiceObject):
                 "Interface '%s' does not exist" % interface_name
             )
 
-    @dbus.service.signal(dbus.PROPERTIES_IFACE, signature="sa{sv}as")
+    @dbus_service_signal(dbus.PROPERTIES_IFACE, signature="sa{sv}as")
     def PropertiesChanged(
         self, interface_name, changed_properties, invalidated_properties
     ):
@@ -918,13 +836,16 @@ class FirewallDConfig(DbusServiceObject):
             self, data, config.dbus.DBUS_INTERFACE_CONFIG
         )
 
-        for interface in [config.dbus.DBUS_INTERFACE_CONFIG_DIRECT]:
+        for interface in [
+            config.dbus.DBUS_INTERFACE_CONFIG_DIRECT,
+            config.dbus.DBUS_INTERFACE_CONFIG_POLICIES,
+        ]:
             data = dbus_introspection_add_deprecated(
                 self,
                 data,
                 interface,
-                dbus_service_method_deprecated().deprecated,
-                dbus_service_signal_deprecated().deprecated,
+                dbus_service_method_deprecated.deprecated,
+                dbus_service_signal_deprecated.deprecated,
             )
 
         return data
@@ -935,197 +856,168 @@ class FirewallDConfig(DbusServiceObject):
 
     @dbus_service_method(
         config.dbus.DBUS_INTERFACE_CONFIG_POLICIES,
-        out_signature=LockdownWhitelist.DBUS_SIGNATURE,
+        out_signature="(asasasai)",
+        is_deprecated=True,
     )
-    @dbus_handle_exceptions
     def getLockdownWhitelist(self, sender=None):  # pylint: disable=W0613
-        log.debug1("config.policies.getLockdownWhitelist()")
-        return self.config.get_policies().lockdown_whitelist.export_config()
+        return ([], [], [], [0])
 
     @dbus_service_method(
         config.dbus.DBUS_INTERFACE_CONFIG_POLICIES,
-        in_signature=LockdownWhitelist.DBUS_SIGNATURE,
+        in_signature="(asasasai)",
+        is_deprecated=True,
     )
-    @dbus_handle_exceptions
     def setLockdownWhitelist(self, settings, sender=None):  # pylint: disable=W0613
-        log.debug1("config.policies.setLockdownWhitelist(...)")
-        settings = dbus_to_python(settings)
-        self.config.get_policies().lockdown_whitelist.import_config(settings, {})
-        self.config.get_policies().lockdown_whitelist.write()
-        self.LockdownWhitelistUpdated()
+        pass
 
-    @dbus.service.signal(config.dbus.DBUS_INTERFACE_CONFIG_POLICIES)
-    @dbus_handle_exceptions
+    @dbus_service_signal(
+        config.dbus.DBUS_INTERFACE_CONFIG_POLICIES,
+        is_deprecated=True,
+    )
     def LockdownWhitelistUpdated(self):
-        log.debug1("config.policies.LockdownWhitelistUpdated()")
+        pass
 
     # command
 
-    @dbus_service_method(config.dbus.DBUS_INTERFACE_CONFIG_POLICIES, in_signature="s")
-    @dbus_handle_exceptions
+    @dbus_service_method(
+        config.dbus.DBUS_INTERFACE_CONFIG_POLICIES,
+        in_signature="s",
+        is_deprecated=True,
+    )
     def addLockdownWhitelistCommand(self, command, sender=None):
-        command = dbus_to_python(command)
-        log.debug1("config.policies.addLockdownWhitelistCommand('%s')", command)
-        self.accessCheck(sender)
-        settings = list(self.getLockdownWhitelist())
-        if command in settings[0]:
-            raise FirewallError(errors.ALREADY_ENABLED, command)
-        settings[0].append(command)
-        self.setLockdownWhitelist(settings)
-
-    @dbus_service_method(config.dbus.DBUS_INTERFACE_CONFIG_POLICIES, in_signature="s")
-    @dbus_handle_exceptions
-    def removeLockdownWhitelistCommand(self, command, sender=None):
-        command = dbus_to_python(command)
-        log.debug1("config.policies.removeLockdownWhitelistCommand('%s')", command)
-        self.accessCheck(sender)
-        settings = list(self.getLockdownWhitelist())
-        if command not in settings[0]:
-            raise FirewallError(errors.NOT_ENABLED, command)
-        settings[0].remove(command)
-        self.setLockdownWhitelist(settings)
+        pass
 
     @dbus_service_method(
-        config.dbus.DBUS_INTERFACE_CONFIG_POLICIES, in_signature="s", out_signature="b"
+        config.dbus.DBUS_INTERFACE_CONFIG_POLICIES,
+        in_signature="s",
+        is_deprecated=True,
     )
-    @dbus_handle_exceptions
-    def queryLockdownWhitelistCommand(
-        self, command, sender=None
-    ):  # pylint: disable=W0613
-        command = dbus_to_python(command)
-        log.debug1("config.policies.queryLockdownWhitelistCommand('%s')", command)
-        return command in self.getLockdownWhitelist()[0]
+    def removeLockdownWhitelistCommand(self, command, sender=None):
+        pass
 
-    @dbus_service_method(config.dbus.DBUS_INTERFACE_CONFIG_POLICIES, out_signature="as")
-    @dbus_handle_exceptions
+    @dbus_service_method(
+        config.dbus.DBUS_INTERFACE_CONFIG_POLICIES,
+        in_signature="s",
+        out_signature="b",
+        is_deprecated=True,
+    )
+    def queryLockdownWhitelistCommand(self, command, sender=None):
+        return False
+
+    @dbus_service_method(
+        config.dbus.DBUS_INTERFACE_CONFIG_POLICIES,
+        out_signature="as",
+        is_deprecated=True,
+    )
     def getLockdownWhitelistCommands(self, sender=None):  # pylint: disable=W0613
-        log.debug1("config.policies.getLockdownWhitelistCommands()")
-        return self.getLockdownWhitelist()[0]
+        return []
 
     # context
 
-    @dbus_service_method(config.dbus.DBUS_INTERFACE_CONFIG_POLICIES, in_signature="s")
-    @dbus_handle_exceptions
+    @dbus_service_method(
+        config.dbus.DBUS_INTERFACE_CONFIG_POLICIES,
+        in_signature="s",
+        is_deprecated=True,
+    )
     def addLockdownWhitelistContext(self, context, sender=None):
-        context = dbus_to_python(context)
-        log.debug1("config.policies.addLockdownWhitelistContext('%s')", context)
-        self.accessCheck(sender)
-        settings = list(self.getLockdownWhitelist())
-        if context in settings[1]:
-            raise FirewallError(errors.ALREADY_ENABLED, context)
-        settings[1].append(context)
-        self.setLockdownWhitelist(settings)
-
-    @dbus_service_method(config.dbus.DBUS_INTERFACE_CONFIG_POLICIES, in_signature="s")
-    @dbus_handle_exceptions
-    def removeLockdownWhitelistContext(self, context, sender=None):
-        context = dbus_to_python(context)
-        log.debug1("config.policies.removeLockdownWhitelistContext('%s')", context)
-        self.accessCheck(sender)
-        settings = list(self.getLockdownWhitelist())
-        if context not in settings[1]:
-            raise FirewallError(errors.NOT_ENABLED, context)
-        settings[1].remove(context)
-        self.setLockdownWhitelist(settings)
+        pass
 
     @dbus_service_method(
-        config.dbus.DBUS_INTERFACE_CONFIG_POLICIES, in_signature="s", out_signature="b"
+        config.dbus.DBUS_INTERFACE_CONFIG_POLICIES,
+        in_signature="s",
+        is_deprecated=True,
     )
-    @dbus_handle_exceptions
+    def removeLockdownWhitelistContext(self, context, sender=None):
+        pass
+
+    @dbus_service_method(
+        config.dbus.DBUS_INTERFACE_CONFIG_POLICIES,
+        in_signature="s",
+        out_signature="b",
+        is_deprecated=True,
+    )
     def queryLockdownWhitelistContext(
         self, context, sender=None
     ):  # pylint: disable=W0613
-        context = dbus_to_python(context)
-        log.debug1("config.policies.queryLockdownWhitelistContext('%s')", context)
-        return context in self.getLockdownWhitelist()[1]
+        return False
 
-    @dbus_service_method(config.dbus.DBUS_INTERFACE_CONFIG_POLICIES, out_signature="as")
-    @dbus_handle_exceptions
+    @dbus_service_method(
+        config.dbus.DBUS_INTERFACE_CONFIG_POLICIES,
+        out_signature="as",
+        is_deprecated=True,
+    )
     def getLockdownWhitelistContexts(self, sender=None):  # pylint: disable=W0613
-        log.debug1("config.policies.getLockdownWhitelistContexts()")
-        return self.getLockdownWhitelist()[1]
+        return []
 
     # user
 
-    @dbus_service_method(config.dbus.DBUS_INTERFACE_CONFIG_POLICIES, in_signature="s")
-    @dbus_handle_exceptions
+    @dbus_service_method(
+        config.dbus.DBUS_INTERFACE_CONFIG_POLICIES,
+        in_signature="s",
+        is_deprecated=True,
+    )
     def addLockdownWhitelistUser(self, user, sender=None):
-        user = dbus_to_python(user)
-        log.debug1("config.policies.addLockdownWhitelistUser('%s')", user)
-        self.accessCheck(sender)
-        settings = list(self.getLockdownWhitelist())
-        if user in settings[2]:
-            raise FirewallError(errors.ALREADY_ENABLED, user)
-        settings[2].append(user)
-        self.setLockdownWhitelist(settings)
-
-    @dbus_service_method(config.dbus.DBUS_INTERFACE_CONFIG_POLICIES, in_signature="s")
-    @dbus_handle_exceptions
-    def removeLockdownWhitelistUser(self, user, sender=None):
-        user = dbus_to_python(user)
-        log.debug1("config.policies.removeLockdownWhitelistUser('%s')", user)
-        self.accessCheck(sender)
-        settings = list(self.getLockdownWhitelist())
-        if user not in settings[2]:
-            raise FirewallError(errors.NOT_ENABLED, user)
-        settings[2].remove(user)
-        self.setLockdownWhitelist(settings)
+        pass
 
     @dbus_service_method(
-        config.dbus.DBUS_INTERFACE_CONFIG_POLICIES, in_signature="s", out_signature="b"
+        config.dbus.DBUS_INTERFACE_CONFIG_POLICIES,
+        in_signature="s",
+        is_deprecated=True,
     )
-    @dbus_handle_exceptions
-    def queryLockdownWhitelistUser(self, user, sender=None):  # pylint: disable=W0613
-        user = dbus_to_python(user)
-        log.debug1("config.policies.queryLockdownWhitelistUser('%s')", user)
-        return user in self.getLockdownWhitelist()[2]
+    def removeLockdownWhitelistUser(self, user, sender=None):
+        pass
 
-    @dbus_service_method(config.dbus.DBUS_INTERFACE_CONFIG_POLICIES, out_signature="as")
-    @dbus_handle_exceptions
+    @dbus_service_method(
+        config.dbus.DBUS_INTERFACE_CONFIG_POLICIES,
+        in_signature="s",
+        out_signature="b",
+        is_deprecated=True,
+    )
+    def queryLockdownWhitelistUser(self, user, sender=None):  # pylint: disable=W0613
+        return False
+
+    @dbus_service_method(
+        config.dbus.DBUS_INTERFACE_CONFIG_POLICIES,
+        out_signature="as",
+        is_deprecated=True,
+    )
     def getLockdownWhitelistUsers(self, sender=None):  # pylint: disable=W0613
-        log.debug1("config.policies.getLockdownWhitelistUsers()")
-        return self.getLockdownWhitelist()[2]
+        return []
 
     # uid
 
-    @dbus_service_method(config.dbus.DBUS_INTERFACE_CONFIG_POLICIES, in_signature="i")
-    @dbus_handle_exceptions
+    @dbus_service_method(
+        config.dbus.DBUS_INTERFACE_CONFIG_POLICIES,
+        in_signature="i",
+        is_deprecated=True,
+    )
     def addLockdownWhitelistUid(self, uid, sender=None):
-        uid = dbus_to_python(uid)
-        log.debug1("config.policies.addLockdownWhitelistUid(%d)", uid)
-        self.accessCheck(sender)
-        settings = list(self.getLockdownWhitelist())
-        if uid in settings[3]:
-            raise FirewallError(errors.ALREADY_ENABLED, uid)
-        settings[3].append(uid)
-        self.setLockdownWhitelist(settings)
-
-    @dbus_service_method(config.dbus.DBUS_INTERFACE_CONFIG_POLICIES, in_signature="i")
-    @dbus_handle_exceptions
-    def removeLockdownWhitelistUid(self, uid, sender=None):
-        uid = dbus_to_python(uid)
-        log.debug1("config.policies.removeLockdownWhitelistUid(%d)", uid)
-        self.accessCheck(sender)
-        settings = list(self.getLockdownWhitelist())
-        if uid not in settings[3]:
-            raise FirewallError(errors.NOT_ENABLED, uid)
-        settings[3].remove(uid)
-        self.setLockdownWhitelist(settings)
+        pass
 
     @dbus_service_method(
-        config.dbus.DBUS_INTERFACE_CONFIG_POLICIES, in_signature="i", out_signature="b"
+        config.dbus.DBUS_INTERFACE_CONFIG_POLICIES,
+        in_signature="i",
+        is_deprecated=True,
     )
-    @dbus_handle_exceptions
-    def queryLockdownWhitelistUid(self, uid, sender=None):  # pylint: disable=W0613
-        uid = dbus_to_python(uid)
-        log.debug1("config.policies.queryLockdownWhitelistUid(%d)", uid)
-        return uid in self.getLockdownWhitelist()[3]
+    def removeLockdownWhitelistUid(self, uid, sender=None):
+        pass
 
-    @dbus_service_method(config.dbus.DBUS_INTERFACE_CONFIG_POLICIES, out_signature="ai")
-    @dbus_handle_exceptions
+    @dbus_service_method(
+        config.dbus.DBUS_INTERFACE_CONFIG_POLICIES,
+        in_signature="i",
+        out_signature="b",
+        is_deprecated=True,
+    )
+    def queryLockdownWhitelistUid(self, uid, sender=None):  # pylint: disable=W0613
+        return False
+
+    @dbus_service_method(
+        config.dbus.DBUS_INTERFACE_CONFIG_POLICIES,
+        out_signature="ai",
+        is_deprecated=True,
+    )
     def getLockdownWhitelistUids(self, sender=None):  # pylint: disable=W0613
-        log.debug1("config.policies.getLockdownWhitelistUids()")
-        return self.getLockdownWhitelist()[3]
+        return []
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -1177,7 +1069,7 @@ class FirewallDConfig(DbusServiceObject):
         config_ipset = self._addIPSet(obj)
         return config_ipset
 
-    @dbus.service.signal(config.dbus.DBUS_INTERFACE_CONFIG, signature="s")
+    @dbus_service_signal(config.dbus.DBUS_INTERFACE_CONFIG, signature="s")
     @dbus_handle_exceptions
     def IPSetAdded(self, ipset):
         ipset = dbus_to_python(ipset, str)
@@ -1231,7 +1123,7 @@ class FirewallDConfig(DbusServiceObject):
         config_icmptype = self._addIcmpType(obj)
         return config_icmptype
 
-    @dbus.service.signal(config.dbus.DBUS_INTERFACE_CONFIG, signature="s")
+    @dbus_service_signal(config.dbus.DBUS_INTERFACE_CONFIG, signature="s")
     @dbus_handle_exceptions
     def IcmpTypeAdded(self, icmptype):
         log.debug1("config.IcmpTypeAdded('%s')" % (icmptype))
@@ -1298,7 +1190,7 @@ class FirewallDConfig(DbusServiceObject):
         config_service = self._addService(obj)
         return config_service
 
-    @dbus.service.signal(config.dbus.DBUS_INTERFACE_CONFIG, signature="s")
+    @dbus_service_signal(config.dbus.DBUS_INTERFACE_CONFIG, signature="s")
     @dbus_handle_exceptions
     def ServiceAdded(self, service):
         log.debug1("config.ServiceAdded('%s')" % (service))
@@ -1418,7 +1310,7 @@ class FirewallDConfig(DbusServiceObject):
         config_zone = self._addZone(obj)
         return config_zone
 
-    @dbus.service.signal(config.dbus.DBUS_INTERFACE_CONFIG, signature="s")
+    @dbus_service_signal(config.dbus.DBUS_INTERFACE_CONFIG, signature="s")
     @dbus_handle_exceptions
     def ZoneAdded(self, zone):
         log.debug1("config.ZoneAdded('%s')" % (zone))
@@ -1469,7 +1361,7 @@ class FirewallDConfig(DbusServiceObject):
         config_policy = self._addPolicy(obj)
         return config_policy
 
-    @dbus.service.signal(config.dbus.DBUS_INTERFACE_CONFIG, signature="s")
+    @dbus_service_signal(config.dbus.DBUS_INTERFACE_CONFIG, signature="s")
     @dbus_handle_exceptions
     def PolicyAdded(self, policy):
         log.debug1("config.PolicyAdded('%s')" % (policy))
@@ -1524,7 +1416,7 @@ class FirewallDConfig(DbusServiceObject):
         config_helper = self._addHelper(obj)
         return config_helper
 
-    @dbus.service.signal(config.dbus.DBUS_INTERFACE_CONFIG, signature="s")
+    @dbus_service_signal(config.dbus.DBUS_INTERFACE_CONFIG, signature="s")
     @dbus_handle_exceptions
     def HelperAdded(self, helper):
         helper = dbus_to_python(helper, str)
@@ -1533,9 +1425,10 @@ class FirewallDConfig(DbusServiceObject):
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # DIRECT
 
-    @dbus_service_method_deprecated(config.dbus.DBUS_INTERFACE_CONFIG_DIRECT)
     @dbus_service_method(
-        config.dbus.DBUS_INTERFACE_CONFIG_DIRECT, out_signature=Direct.DBUS_SIGNATURE
+        config.dbus.DBUS_INTERFACE_CONFIG_DIRECT,
+        out_signature=Direct.DBUS_SIGNATURE,
+        is_deprecated=True,
     )
     @dbus_handle_exceptions
     def getSettings(self, sender=None):  # pylint: disable=W0613
@@ -1543,9 +1436,10 @@ class FirewallDConfig(DbusServiceObject):
         log.debug1("config.direct.getSettings()")
         return self.config.get_direct().export_config()
 
-    @dbus_service_method_deprecated(config.dbus.DBUS_INTERFACE_CONFIG_DIRECT)
     @dbus_service_method(
-        config.dbus.DBUS_INTERFACE_CONFIG_DIRECT, in_signature=Direct.DBUS_SIGNATURE
+        config.dbus.DBUS_INTERFACE_CONFIG_DIRECT,
+        in_signature=Direct.DBUS_SIGNATURE,
+        is_deprecated=True,
     )
     @dbus_handle_exceptions
     def update(self, settings, sender=None):  # pylint: disable=W0613
@@ -1556,16 +1450,21 @@ class FirewallDConfig(DbusServiceObject):
         self.config.get_direct().write()
         self.Updated()
 
-    @dbus_service_signal_deprecated(config.dbus.DBUS_INTERFACE_CONFIG_DIRECT)
-    @dbus.service.signal(config.dbus.DBUS_INTERFACE_CONFIG_DIRECT)
+    @dbus_service_signal(
+        config.dbus.DBUS_INTERFACE_CONFIG_DIRECT,
+        is_deprecated=True,
+    )
     @dbus_handle_exceptions
     def Updated(self):
         log.debug1("config.direct.Updated()")
 
     # chain
 
-    @dbus_service_method_deprecated(config.dbus.DBUS_INTERFACE_CONFIG_DIRECT)
-    @dbus_service_method(config.dbus.DBUS_INTERFACE_CONFIG_DIRECT, in_signature="sss")
+    @dbus_service_method(
+        config.dbus.DBUS_INTERFACE_CONFIG_DIRECT,
+        in_signature="sss",
+        is_deprecated=True,
+    )
     @dbus_handle_exceptions
     def addChain(self, ipv, table, chain, sender=None):
         ipv = dbus_to_python(ipv)
@@ -1583,8 +1482,11 @@ class FirewallDConfig(DbusServiceObject):
         settings[0].append(idx)
         self.update(settings)
 
-    @dbus_service_method_deprecated(config.dbus.DBUS_INTERFACE_CONFIG_DIRECT)
-    @dbus_service_method(config.dbus.DBUS_INTERFACE_CONFIG_DIRECT, in_signature="sss")
+    @dbus_service_method(
+        config.dbus.DBUS_INTERFACE_CONFIG_DIRECT,
+        in_signature="sss",
+        is_deprecated=True,
+    )
     @dbus_handle_exceptions
     def removeChain(self, ipv, table, chain, sender=None):
         ipv = dbus_to_python(ipv)
@@ -1601,9 +1503,11 @@ class FirewallDConfig(DbusServiceObject):
         settings[0].remove(idx)
         self.update(settings)
 
-    @dbus_service_method_deprecated(config.dbus.DBUS_INTERFACE_CONFIG_DIRECT)
     @dbus_service_method(
-        config.dbus.DBUS_INTERFACE_CONFIG_DIRECT, in_signature="sss", out_signature="b"
+        config.dbus.DBUS_INTERFACE_CONFIG_DIRECT,
+        in_signature="sss",
+        out_signature="b",
+        is_deprecated=True,
     )
     @dbus_handle_exceptions
     def queryChain(self, ipv, table, chain, sender=None):  # pylint: disable=W0613
@@ -1614,9 +1518,11 @@ class FirewallDConfig(DbusServiceObject):
         idx = tuple((ipv, table, chain))
         return idx in self.getSettings()[0]
 
-    @dbus_service_method_deprecated(config.dbus.DBUS_INTERFACE_CONFIG_DIRECT)
     @dbus_service_method(
-        config.dbus.DBUS_INTERFACE_CONFIG_DIRECT, in_signature="ss", out_signature="as"
+        config.dbus.DBUS_INTERFACE_CONFIG_DIRECT,
+        in_signature="ss",
+        out_signature="as",
+        is_deprecated=True,
     )
     @dbus_handle_exceptions
     def getChains(self, ipv, table, sender=None):  # pylint: disable=W0613
@@ -1629,11 +1535,11 @@ class FirewallDConfig(DbusServiceObject):
                 ret.append(idx[2])
         return ret
 
-    @dbus_service_method_deprecated(config.dbus.DBUS_INTERFACE_CONFIG_DIRECT)
     @dbus_service_method(
         config.dbus.DBUS_INTERFACE_CONFIG_DIRECT,
         in_signature="",
         out_signature="a(sss)",
+        is_deprecated=True,
     )
     @dbus_handle_exceptions
     def getAllChains(self, sender=None):  # pylint: disable=W0613
@@ -1642,9 +1548,10 @@ class FirewallDConfig(DbusServiceObject):
 
     # rule
 
-    @dbus_service_method_deprecated(config.dbus.DBUS_INTERFACE_CONFIG_DIRECT)
     @dbus_service_method(
-        config.dbus.DBUS_INTERFACE_CONFIG_DIRECT, in_signature="sssias"
+        config.dbus.DBUS_INTERFACE_CONFIG_DIRECT,
+        in_signature="sssias",
+        is_deprecated=True,
     )
     @dbus_handle_exceptions
     def addRule(
@@ -1670,9 +1577,10 @@ class FirewallDConfig(DbusServiceObject):
         settings[1].append(idx)
         self.update(tuple(settings))
 
-    @dbus_service_method_deprecated(config.dbus.DBUS_INTERFACE_CONFIG_DIRECT)
     @dbus_service_method(
-        config.dbus.DBUS_INTERFACE_CONFIG_DIRECT, in_signature="sssias"
+        config.dbus.DBUS_INTERFACE_CONFIG_DIRECT,
+        in_signature="sssias",
+        is_deprecated=True,
     )
     @dbus_handle_exceptions
     def removeRule(
@@ -1698,11 +1606,11 @@ class FirewallDConfig(DbusServiceObject):
         settings[1].remove(idx)
         self.update(tuple(settings))
 
-    @dbus_service_method_deprecated(config.dbus.DBUS_INTERFACE_CONFIG_DIRECT)
     @dbus_service_method(
         config.dbus.DBUS_INTERFACE_CONFIG_DIRECT,
         in_signature="sssias",
         out_signature="b",
+        is_deprecated=True,
     )
     @dbus_handle_exceptions
     def queryRule(
@@ -1720,8 +1628,11 @@ class FirewallDConfig(DbusServiceObject):
         idx = (ipv, table, chain, priority, args)
         return idx in self.getSettings()[1]
 
-    @dbus_service_method_deprecated(config.dbus.DBUS_INTERFACE_CONFIG_DIRECT)
-    @dbus_service_method(config.dbus.DBUS_INTERFACE_CONFIG_DIRECT, in_signature="sss")
+    @dbus_service_method(
+        config.dbus.DBUS_INTERFACE_CONFIG_DIRECT,
+        in_signature="sss",
+        is_deprecated=True,
+    )
     @dbus_handle_exceptions
     def removeRules(self, ipv, table, chain, sender=None):
         ipv = dbus_to_python(ipv)
@@ -1742,11 +1653,11 @@ class FirewallDConfig(DbusServiceObject):
                 settings[1].remove(rule)
         self.update(tuple(settings))
 
-    @dbus_service_method_deprecated(config.dbus.DBUS_INTERFACE_CONFIG_DIRECT)
     @dbus_service_method(
         config.dbus.DBUS_INTERFACE_CONFIG_DIRECT,
         in_signature="sss",
         out_signature="a(ias)",
+        is_deprecated=True,
     )
     @dbus_handle_exceptions
     def getRules(self, ipv, table, chain, sender=None):  # pylint: disable=W0613
@@ -1760,11 +1671,11 @@ class FirewallDConfig(DbusServiceObject):
                 ret.append((idx[3], idx[4]))
         return ret
 
-    @dbus_service_method_deprecated(config.dbus.DBUS_INTERFACE_CONFIG_DIRECT)
     @dbus_service_method(
         config.dbus.DBUS_INTERFACE_CONFIG_DIRECT,
         in_signature="",
         out_signature="a(sssias)",
+        is_deprecated=True,
     )
     @dbus_handle_exceptions
     def getAllRules(self, sender=None):  # pylint: disable=W0613
@@ -1773,8 +1684,11 @@ class FirewallDConfig(DbusServiceObject):
 
     # passthrough
 
-    @dbus_service_method_deprecated(config.dbus.DBUS_INTERFACE_CONFIG_DIRECT)
-    @dbus_service_method(config.dbus.DBUS_INTERFACE_CONFIG_DIRECT, in_signature="sas")
+    @dbus_service_method(
+        config.dbus.DBUS_INTERFACE_CONFIG_DIRECT,
+        in_signature="sas",
+        is_deprecated=True,
+    )
     @dbus_handle_exceptions
     def addPassthrough(self, ipv, args, sender=None):
         ipv = dbus_to_python(ipv)
@@ -1790,8 +1704,11 @@ class FirewallDConfig(DbusServiceObject):
         settings[2].append(idx)
         self.update(settings)
 
-    @dbus_service_method_deprecated(config.dbus.DBUS_INTERFACE_CONFIG_DIRECT)
-    @dbus_service_method(config.dbus.DBUS_INTERFACE_CONFIG_DIRECT, in_signature="sas")
+    @dbus_service_method(
+        config.dbus.DBUS_INTERFACE_CONFIG_DIRECT,
+        in_signature="sas",
+        is_deprecated=True,
+    )
     @dbus_handle_exceptions
     def removePassthrough(self, ipv, args, sender=None):
         ipv = dbus_to_python(ipv)
@@ -1809,9 +1726,11 @@ class FirewallDConfig(DbusServiceObject):
         settings[2].remove(idx)
         self.update(settings)
 
-    @dbus_service_method_deprecated(config.dbus.DBUS_INTERFACE_CONFIG_DIRECT)
     @dbus_service_method(
-        config.dbus.DBUS_INTERFACE_CONFIG_DIRECT, in_signature="sas", out_signature="b"
+        config.dbus.DBUS_INTERFACE_CONFIG_DIRECT,
+        in_signature="sas",
+        out_signature="b",
+        is_deprecated=True,
     )
     @dbus_handle_exceptions
     def queryPassthrough(self, ipv, args, sender=None):  # pylint: disable=W0613
@@ -1823,9 +1742,11 @@ class FirewallDConfig(DbusServiceObject):
         idx = (ipv, args)
         return idx in self.getSettings()[2]
 
-    @dbus_service_method_deprecated(config.dbus.DBUS_INTERFACE_CONFIG_DIRECT)
     @dbus_service_method(
-        config.dbus.DBUS_INTERFACE_CONFIG_DIRECT, in_signature="s", out_signature="aas"
+        config.dbus.DBUS_INTERFACE_CONFIG_DIRECT,
+        in_signature="s",
+        out_signature="aas",
+        is_deprecated=True,
     )
     @dbus_handle_exceptions
     def getPassthroughs(self, ipv, sender=None):  # pylint: disable=W0613
@@ -1837,9 +1758,10 @@ class FirewallDConfig(DbusServiceObject):
                 ret.append(idx[1])
         return ret
 
-    @dbus_service_method_deprecated(config.dbus.DBUS_INTERFACE_CONFIG_DIRECT)
     @dbus_service_method(
-        config.dbus.DBUS_INTERFACE_CONFIG_DIRECT, out_signature="a(sas)"
+        config.dbus.DBUS_INTERFACE_CONFIG_DIRECT,
+        out_signature="a(sas)",
+        is_deprecated=True,
     )
     @dbus_handle_exceptions
     def getAllPassthroughs(self, sender=None):  # pylint: disable=W0613

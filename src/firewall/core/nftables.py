@@ -42,6 +42,7 @@ from nftables.nftables import Nftables
 
 TABLE_NAME = "firewalld"
 TABLE_NAME_POLICY = TABLE_NAME + "_" + "policy_drop"
+TABLE_NAME_PROBE = TABLE_NAME + "_" + "probe"
 POLICY_CHAIN_PREFIX = "policy_"
 
 # Map iptables (table, chain) to hooks and priorities.
@@ -227,6 +228,7 @@ class nftables:
     def __init__(self, fw):
         self._fw = fw
         self.restore_command_exists = True
+        self.supports_table_owner = False
         self.available_tables = []
         self.rule_to_handle = {}
         self.rule_ref_count = {}
@@ -236,6 +238,60 @@ class nftables:
         self.nftables = Nftables()
         self.nftables.set_echo_output(True)
         self.nftables.set_handle_output(True)
+
+    def _probe_support_table_owner(self):
+        try:
+            rules = {
+                "nftables": [
+                    {"metainfo": {"json_schema_version": 1}},
+                    {
+                        "add": {
+                            "table": {
+                                "family": "inet",
+                                "name": TABLE_NAME_PROBE,
+                                "flags": ["owner", "persist"],
+                            }
+                        }
+                    },
+                ]
+            }
+
+            rc, output, _ = self.nftables.json_cmd(rules)
+            if rc:
+                raise ValueError("nftables probe table owner failed")
+
+            # old nftables versions would ignore table flags in JSON, so we
+            # must parse back and verify the flags are set.
+            rules = {
+                "nftables": [
+                    {"metainfo": {"json_schema_version": 1}},
+                    {"list": {"table": {"family": "inet", "name": TABLE_NAME_PROBE}}},
+                ]
+            }
+            self.nftables.set_echo_output(False)
+            rc, output, _ = self.nftables.json_cmd(rules)
+            self.nftables.set_echo_output(True)
+            flags = output["nftables"][1]["table"]["flags"]
+
+            if "owner" not in flags or "persist" not in flags:
+                raise ValueError("nftables probe table owner failed")
+
+            log.debug2("nftables: probe_support(): owner flag is supported.")
+            self.supports_table_owner = True
+        except:
+            log.debug2("nftables: probe_support(): owner flag is NOT supported.")
+            self.supports_table_owner = False
+
+        try:
+            self.set_rule(
+                {"delete": {"table": {"family": "inet", "name": TABLE_NAME_PROBE}}},
+                self._fw.get_log_denied(),
+            )
+        except:
+            pass
+
+    def probe_support(self):
+        self._probe_support_table_owner()
 
     def _set_rule_sort_policy_dispatch(self, rule, policy_dispatch_index_cache):
         for verb in ["add", "insert", "delete"]:
@@ -499,14 +555,25 @@ class nftables:
         # Tables always exist in nftables
         return [table] if table else IPTABLES_TO_NFT_HOOK.keys()
 
+    def _build_add_table_rules(self, table):
+        rule = {"add": {"table": {"family": "inet", "name": table}}}
+
+        if (
+            table == TABLE_NAME
+            and self._fw._nftables_table_owner
+            and self.supports_table_owner
+        ):
+            rule["add"]["table"]["flags"] = ["owner", "persist"]
+
+        return [rule]
+
     def _build_delete_table_rules(self, table):
         # To avoid nftables returning ENOENT we always add the table before
         # deleting to guarantee it will exist.
         #
         # In the future, this add+delete should be replaced with "destroy", but
         # that verb is too new to rely upon.
-        return [
-            {"add": {"table": {"family": "inet", "name": table}}},
+        return self._build_add_table_rules(table) + [
             {"delete": {"table": {"family": "inet", "name": table}}},
         ]
 
@@ -546,9 +613,7 @@ class nftables:
         # a higher priority than our base chains is sufficient.
         rules = []
         if policy == "PANIC":
-            rules.append(
-                {"add": {"table": {"family": "inet", "name": TABLE_NAME_POLICY}}}
-            )
+            rules.extend(self._build_add_table_rules(TABLE_NAME_POLICY))
 
             # Use "raw" priority for panic mode. This occurs before
             # conntrack, mangle, nat, etc
@@ -569,9 +634,7 @@ class nftables:
                     }
                 )
         elif policy == "DROP":
-            rules.append(
-                {"add": {"table": {"family": "inet", "name": TABLE_NAME_POLICY}}}
-            )
+            rules.extend(self._build_add_table_rules(TABLE_NAME_POLICY))
 
             # To drop everything except existing connections we use
             # "filter" because it occurs _after_ conntrack.
@@ -638,11 +701,91 @@ class nftables:
         return list(supported)
 
     def build_default_tables(self):
-        default_tables = []
-        default_tables.append(
-            {"add": {"table": {"family": "inet", "name": TABLE_NAME}}}
-        )
-        return default_tables
+        return self._build_add_table_rules(TABLE_NAME)
+
+    def _build_default_rules_dnat(self, chain):
+        dnat_rules = []
+        if self._fw._strict_forward_ports:
+            # Use a dedicated chain to check for DNAT'd packets on expected ports.
+            # Drop all other DNAT'd ports.
+            #
+            dnat_rules.append(
+                {
+                    "add": {
+                        "chain": {
+                            "family": "inet",
+                            "table": TABLE_NAME,
+                            "name": f"filter_{chain}_dnat",
+                        }
+                    }
+                }
+            )
+            dnat_rules.append(
+                {
+                    "add": {
+                        "rule": {
+                            "family": "inet",
+                            "table": TABLE_NAME,
+                            "chain": f"filter_{chain}_dnat",
+                            "expr": [
+                                {
+                                    "reject": {
+                                        "type": "icmpx",
+                                        "expr": "admin-prohibited",
+                                    }
+                                }
+                            ],
+                        }
+                    }
+                }
+            )
+            dnat_rules.append(
+                {
+                    "add": {
+                        "rule": {
+                            "family": "inet",
+                            "table": TABLE_NAME,
+                            "chain": f"filter_{chain}",
+                            "expr": [
+                                {
+                                    "match": {
+                                        "left": {"ct": {"key": "status"}},
+                                        "op": "in",
+                                        "right": "dnat",
+                                    }
+                                },
+                                {"jump": {"target": f"filter_{chain}_dnat"}},
+                            ],
+                        }
+                    }
+                }
+            )
+        else:
+            # Generic accept of all DNAT'd packets.
+            #
+            dnat_rules.append(
+                {
+                    "add": {
+                        "rule": {
+                            "family": "inet",
+                            "table": TABLE_NAME,
+                            "chain": f"filter_{chain}",
+                            "expr": [
+                                {
+                                    "match": {
+                                        "left": {"ct": {"key": "status"}},
+                                        "op": "in",
+                                        "right": "dnat",
+                                    }
+                                },
+                                {"accept": None},
+                            ],
+                        }
+                    }
+                }
+            )
+
+        return dnat_rules
 
     def build_default_rules(self, log_denied="off"):
         default_rules = []
@@ -765,27 +908,9 @@ class nftables:
                 }
             }
         )
-        default_rules.append(
-            {
-                "add": {
-                    "rule": {
-                        "family": "inet",
-                        "table": TABLE_NAME,
-                        "chain": "filter_%s" % "INPUT",
-                        "expr": [
-                            {
-                                "match": {
-                                    "left": {"ct": {"key": "status"}},
-                                    "op": "in",
-                                    "right": "dnat",
-                                }
-                            },
-                            {"accept": None},
-                        ],
-                    }
-                }
-            }
-        )
+
+        default_rules.extend(self._build_default_rules_dnat("INPUT"))
+
         default_rules.append(
             {
                 "add": {
@@ -970,27 +1095,9 @@ class nftables:
                 }
             }
         )
-        default_rules.append(
-            {
-                "add": {
-                    "rule": {
-                        "family": "inet",
-                        "table": TABLE_NAME,
-                        "chain": "filter_%s" % "FORWARD",
-                        "expr": [
-                            {
-                                "match": {
-                                    "left": {"ct": {"key": "status"}},
-                                    "op": "in",
-                                    "right": "dnat",
-                                }
-                            },
-                            {"accept": None},
-                        ],
-                    }
-                }
-            }
-        )
+
+        default_rules.extend(self._build_default_rules_dnat("FORWARD"))
+
         default_rules.append(
             {
                 "add": {
@@ -1132,6 +1239,9 @@ class nftables:
                 }
             }
         )
+
+        default_rules.extend(self._build_default_rules_dnat("OUTPUT"))
+
         default_rules.append(
             {
                 "add": {
@@ -1594,17 +1704,16 @@ class nftables:
             "d": "day",
         }
 
-        try:
-            i = limit.value.index("/")
-        except ValueError:
-            raise FirewallError(INVALID_RULE, "Expected '/' in limit")
-
-        return {
-            "limit": {
-                "rate": int(limit.value[0:i]),
-                "per": rich_to_nft[limit.value[i + 1]],
-            }
+        d = {
+            "rate": limit.rate,
+            "per": rich_to_nft[limit.duration],
         }
+
+        burst = limit.burst
+        if burst is not None:
+            d["burst"] = burst
+
+        return {"limit": d}
 
     def _rich_rule_chain_suffix(self, rich_rule):
         if type(rich_rule.element) in [
@@ -1674,11 +1783,9 @@ class nftables:
 
         log_options = {}
         if isinstance(rich_rule.log, Rich_NFLog):
-            log_options["group"] = (
-                int(rich_rule.log.group) if rich_rule.log.group else 0
-            )
+            log_options["group"] = rich_rule.log.group
             if rich_rule.log.threshold:
-                log_options["queue-threshold"] = int(rich_rule.log.threshold)
+                log_options["queue-threshold"] = rich_rule.log.threshold
         else:
             if rich_rule.log.level:
                 level = (
@@ -2016,7 +2123,7 @@ class nftables:
             }
         )
 
-        if tcp_mss_clamp_value == "pmtu" or tcp_mss_clamp_value is None:
+        if tcp_mss_clamp_value == "pmtu" or not tcp_mss_clamp_value:
             expr_fragments.append(
                 {
                     "mangle": {
@@ -2252,6 +2359,7 @@ class nftables:
         _policy = self._fw.policy.policy_base_chain_name(
             policy, table, POLICY_CHAIN_PREFIX
         )
+        p_obj = self._fw.policy.get_policy(policy)
         add_del = {True: "add", False: "delete"}[enable]
 
         expr_fragments = []
@@ -2314,6 +2422,30 @@ class nftables:
         rule.update(self._rich_rule_priority_fragment(rich_rule))
         rules.append({add_del: {"rule": rule}})
 
+        if self._fw._strict_forward_ports:
+            if "HOST" in p_obj.ingress_zones:
+                chain = "OUTPUT"
+            elif toaddr:
+                chain = "FORWARD"
+            else:
+                chain = "INPUT"
+            rule = {
+                "family": "inet",
+                "table": TABLE_NAME,
+                "chain": f"filter_{chain}_dnat",
+                "expr": [
+                    {
+                        "match": {
+                            "left": {"ct": {"key": "proto-dst", "dir": "original"}},
+                            "op": "==",
+                            "right": self._port_fragment(port),
+                        },
+                    },
+                    {"accept": None},
+                ],
+            }
+            rules.append({"insert" if enable else "delete": {"rule": rule}})
+
         return rules
 
     def _icmp_types_to_nft_fragments(self, ipv, icmp_type):
@@ -2326,23 +2458,14 @@ class nftables:
                 % (icmp_type, self.name, ipv),
             )
 
-    def build_policy_icmp_block_rules(self, enable, policy, ict, rich_rule=None):
+    def build_policy_icmp_block_rules(
+        self, enable, policy, ict, rich_rule=None, ipvs=["ipv4", "ipv6"]
+    ):
         table = "filter"
         _policy = self._fw.policy.policy_base_chain_name(
             policy, table, POLICY_CHAIN_PREFIX
         )
         add_del = {True: "add", False: "delete"}[enable]
-
-        if rich_rule and rich_rule.ipvs:
-            ipvs = rich_rule.ipvs
-        elif ict.destination:
-            ipvs = []
-            if "ipv4" in ict.destination:
-                ipvs.append("ipv4")
-            if "ipv6" in ict.destination:
-                ipvs.append("ipv6")
-        else:
-            ipvs = ["ipv4", "ipv6"]
 
         rules = []
         for ipv in ipvs:
@@ -2493,6 +2616,19 @@ class nftables:
 
     def build_rpfilter_rules(self, log_denied=False):
         rules = []
+        rpfilter_chain = "filter_PREROUTING"
+
+        if self._fw._ipv6_rpfilter == "loose":
+            fib_flags = ["saddr", "mark"]
+        elif self._fw._ipv6_rpfilter == "loose-forward":
+            fib_flags = ["saddr", "mark"]
+            rpfilter_chain = "filter_FORWARD"
+        elif self._fw._ipv6_rpfilter == "strict-forward":
+            fib_flags = ["saddr", "mark", "iif"]
+            rpfilter_chain = "filter_FORWARD"
+        else:
+            fib_flags = ["saddr", "mark", "iif"]
+
         expr_fragments = [
             {
                 "match": {
@@ -2503,9 +2639,7 @@ class nftables:
             },
             {
                 "match": {
-                    "left": {
-                        "fib": {"flags": ["saddr", "iif", "mark"], "result": "oif"}
-                    },
+                    "left": {"fib": {"flags": fib_flags, "result": "oif"}},
                     "op": "==",
                     "right": False,
                 }
@@ -2521,44 +2655,46 @@ class nftables:
                     "rule": {
                         "family": "inet",
                         "table": TABLE_NAME,
-                        "chain": "filter_PREROUTING",
+                        "chain": rpfilter_chain,
                         "expr": expr_fragments,
                     }
                 }
             }
         )
         # RHBZ#1058505, RHBZ#1575431 (bug in kernel 4.16-4.17)
-        rules.append(
-            {
-                "insert": {
-                    "rule": {
-                        "family": "inet",
-                        "table": TABLE_NAME,
-                        "chain": "filter_PREROUTING",
-                        "expr": [
-                            {
-                                "match": {
-                                    "left": {
-                                        "payload": {
-                                            "protocol": "icmpv6",
-                                            "field": "type",
-                                        }
-                                    },
-                                    "op": "==",
-                                    "right": {
-                                        "set": [
-                                            "nd-router-advert",
-                                            "nd-neighbor-solicit",
-                                        ]
-                                    },
-                                }
-                            },
-                            {"accept": None},
-                        ],
+        if self._fw._ipv6_rpfilter not in ("loose-forward", "strict-forward"):
+            # this rule doesn't make sense for forwarded packets
+            rules.append(
+                {
+                    "insert": {
+                        "rule": {
+                            "family": "inet",
+                            "table": TABLE_NAME,
+                            "chain": rpfilter_chain,
+                            "expr": [
+                                {
+                                    "match": {
+                                        "left": {
+                                            "payload": {
+                                                "protocol": "icmpv6",
+                                                "field": "type",
+                                            }
+                                        },
+                                        "op": "==",
+                                        "right": {
+                                            "set": [
+                                                "nd-router-advert",
+                                                "nd-neighbor-solicit",
+                                            ]
+                                        },
+                                    }
+                                },
+                                {"accept": None},
+                            ],
+                        }
                     }
                 }
-            }
-        )
+            )
         return rules
 
     def build_rfc3964_ipv4_rules(self):
@@ -2600,7 +2736,7 @@ class nftables:
                         "family": "inet",
                         "table": TABLE_NAME,
                         "chain": "filter_OUTPUT",
-                        "index": 1,
+                        "index": 2,
                         "expr": expr_fragments,
                     }
                 }
@@ -2610,6 +2746,8 @@ class nftables:
         if self._fw._nftables_flowtable != "off":
             forward_index += 1
         if self._fw.get_log_denied() != "off":
+            forward_index += 1
+        if self._fw._ipv6_rpfilter in ("loose-forward", "strict-forward"):
             forward_index += 1
         rules.append(
             {
@@ -2757,7 +2895,7 @@ class nftables:
                 )
             elif format == "iface":
                 fragments.append(
-                    {"meta": {"key": "iifname" if match_dest else "oifname"}}
+                    {"meta": {"key": "oifname" if match_dest else "iifname"}}
                 )
             elif format == "mark":
                 fragments.append({"meta": {"key": "mark"}})

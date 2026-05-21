@@ -13,15 +13,15 @@ case "$1" in
         update-alternatives --install /usr/share/polkit-1/actions/org.fedoraproject.FirewallD1.policy \
             org.fedoraproject.FirewallD1.policy \
             /usr/share/polkit-1/actions/org.fedoraproject.FirewallD1.desktop.policy.choice 10
-
-        if dpkg --compare-versions "$2" lt-nl "0.8.3-1"; then
-            update-rc.d firewalld remove || true
-        fi
     ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)
     ;;
 
+    triggered)
+        # reload on file changes in /usr/lib/firewalld/{services,zones}
+        firewall-cmd --quiet --reload || true
+    ;;
     *)
         echo "postinst called with unknown argument \`$1'" >&2
         exit 1
